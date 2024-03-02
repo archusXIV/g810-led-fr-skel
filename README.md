@@ -1,7 +1,10 @@
 # g810-led-fr-skel
 create, delete or switch g810-led profiles for AZERTY fr_FR Logitech keyboards.
 
-Profiles depend on a [skeleton](https://github.com/archusXIV/g810-led-fr-skel/blob/main/profile_skel) file that you can edit before installation
+Profiles depend on a [skeleton](https://github.com/archusXIV/g810-led-fr-skel/blob/main/profile_skel) file that you can edit before installation, keys names are organized by raws based on a latin1 fr_CH layout because the g810-led project started like this. But here the translation is done simply by removing keys or placing them in the right raw.
+```
+g810-led --help-keys
+```
 
 ## Credits
 I'd like to thanks Matmoul for his project [g810-led](https://github.com/MatMoul/g810-led) that's provide a simple & funny way to play with our RGB Logitech keyboards.
