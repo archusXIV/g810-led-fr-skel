@@ -34,7 +34,7 @@ I'd like to thanks Matmoul for his project [g810-led](https://github.com/MatMoul
 git clone https://github.com/MatMoul/g810-led.git
 cd g810-led.git
 EDITOR=<your_editor_name> src/helpers/helper.h
-# then add: #include <cstdint> at line 21, save and run:
+# then add: #include <cstdint> at line 20 (before #include <iostream>), save and run:
 make
 sudo make install
 ```
