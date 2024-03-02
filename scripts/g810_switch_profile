@@ -60,16 +60,3 @@ elif [[ ! -f profile_$1 ]]; then
 
     done
 fi
-
-polybar-msg \
--p "$(pgrep --full "$(wmctrl -m | awk '/Name/{print $2}')"-bar-2)" \
-action "#ksp-ipc.hook.0" >/dev/null 2>&1
-
-profile_rules="/etc/udev/rules.d/g810-led.rules"
-profile_udev=$(grep -e 'profile_' "$profile_rules" | sed 's,.*/,,;s/"//')
-muteKeyOn=$(awk '/^var color1/{print $NF}' "$profiles_dir"/"$profile_udev")
-
-[[ -s "$XDG_RUNTIME_DIR"/scratchpad_hidden.list ]] && \
-"$myModelBinary" -fx breathing logo fb4934 5
-[[ $(pactl get-sink-mute "$(pactl get-default-sink)") == 'Mute: yes' ]] && \
-"$myModelBinary" -k mute "$muteKeyOn"

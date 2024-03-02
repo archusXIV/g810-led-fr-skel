@@ -19,7 +19,7 @@ myModelBinary=g815-led
 
 profiles_dir="$HOME/.config/g810-led/profiles"
 profileSkel="$HOME/.config/g810-led/profile_skel"
-themes_dir="$HOME/.config/xfiles/themes"
+themes_dir="$HOME/.config/g810-led/themes"
 rules="/etc/udev/rules.d/g810-led.rules"
 profile=$(grep -e "$myModelId" "$rules" | sed 's,.*/,,;s/"//')
 
@@ -27,7 +27,7 @@ XresourcesColors=(
     color1 color2 color3 color4 color5 color6 color7
 )
 
-# ~/.config/xfiles/themes/<myTheme> [variables] names
+# ~/.config/g810-led/themes/<myTheme> [variables] names
 declare -A ThemeColors=(
     [red]="${XresourcesColors[0]}"
     [grn]="${XresourcesColors[1]}"
@@ -100,9 +100,6 @@ case "$REPLY" in
     y|Y)
         "$myModelBinary" -pp < "$etcProfiles"/profile_"$name"
         sudo sed -i "s/${profile}/profile_${name}/" "$rules"
-        polybar-msg \
-        -p "$(pgrep --full "$(wmctrl -m | awk '/Name/{print $2}')"-bar-2)" \
-        action "#ksp-ipc.hook.0" >/dev/null 2>&1
     ;;
     n|N)
         exit 0
