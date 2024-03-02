@@ -1,5 +1,7 @@
-# g810-led-fr-skel (under construction)
-create delete or switch g810-led profiles for AZERTY fr_FR Logitech keyboards.
+# g810-led-fr-skel
+create, delete or switch g810-led profiles for AZERTY fr_FR Logitech keyboards.
+
+Profiles depend on a [skeleton](https://github.com/archusXIV/g810-led-fr-skel/blob/main/profile_skel) file that you can edit before installation
 
 ## Credits
 I'd like to thanks Matmoul for his project [g810-led](https://github.com/MatMoul/g810-led) that's provide a simple & funny way to play with our RGB Logitech keyboards.
@@ -10,8 +12,8 @@ I'd like to thanks Matmoul for his project [g810-led](https://github.com/MatMoul
 ![screenshot](https://github.com/archusXIV/g810-led-fr-skel/blob/main/g815_qwerty.jpg)
 ## How to install?
 - First following this page:
-    - https://github.com/MatMoul/g810-led/blob/master/INSTALL.md
-    - If it fails: https://aur.archlinux.org/packages/g810-led-git#comment-919059
+    - [install instructions](https://github.com/MatMoul/g810-led/blob/master/INSTALL.md)
+    - If it fails: [AUR solution](https://aur.archlinux.org/packages/g810-led-git#comment-919059)
 ```
 git clone https://github.com/MatMoul/g810-led.git
 cd g810-led.git
