@@ -1,0 +1,113 @@
+#!/bin/bash
+
+# Author: Barret E <https://github.com/archusXIV>
+# Create g810-led colorschemes (profiles) from a skeleton file: manually,
+# from our current ~/.Xresources colors or from an existing Xresources theme.
+# Fill the myModelName variable with your supported keyboard.
+# G213 G410 G413 G512 G513 G610 G810 G815 G910 Gpro,
+# and the myModelBinary in lower case suffixed with '-led'
+# use lsusb to find out your model name & model id
+
+myModelName=G815
+myModelId=c33f
+myModelBinary=g815-led
+
+! grep -q "$myModelName" < <(lsusb) && {
+    echo "$myModelName is not plugged in, exiting..."
+    exit 127
+}
+
+profiles_dir="$HOME/.config/g810-led/profiles"
+profileSkel="$HOME/.config/g810-led/profile_skel"
+themes_dir="$HOME/.config/xfiles/themes"
+rules="/etc/udev/rules.d/g810-led.rules"
+profile=$(grep -e "$myModelId" "$rules" | sed 's,.*/,,;s/"//')
+
+XresourcesColors=(
+    color1 color2 color3 color4 color5 color6 color7
+)
+
+# ~/.config/xfiles/themes/<myTheme> [variables] names
+declare -A ThemeColors=(
+    [red]="${XresourcesColors[0]}"
+    [grn]="${XresourcesColors[1]}"
+    [ylw]="${XresourcesColors[2]}"
+    [blu]="${XresourcesColors[3]}"
+    [mag]="${XresourcesColors[4]}"
+    [cyn]="${XresourcesColors[5]}"
+    [wht]="${XresourcesColors[6]}"
+)
+
+cd "$profiles_dir" || exit 1
+
+_copyProfileAs() {
+    cp "$profileSkel" "$profiles_dir"/profile_"$name"
+    sed -i "1s/^/# profile_$name\n/" profile_"$name"
+    clear
+}
+
+read -rp " create [M]anually, from a [T]heme or from [X]resources: " create
+printf '\n'
+
+case "$create" in
+    m|M)
+        read -rp ' Enter a profile name: ' name
+        _copyProfileAs
+        for m in "${XresourcesColors[@]}"; do
+            printf '\n'
+            printf '%s\n' " color1=red color2=green color3=yellow color4=blu " \
+                          " color5=magenta color6=cyan color7=white"
+            printf '\n'
+            read -rp " Enter an hex color value for $m: " clr
+            sed -i "s/var ${m}/var ${m} ${clr}/" profile_"$name"
+            clear
+        done
+    ;;
+    t|T)
+        PS3=""$'\n'" Choose a theme: "
+        select name in $(find "$themes_dir" -type f | sort | sed 's,.*/,,'); do
+            _copyProfileAs
+	        for key in "${!ThemeColors[@]}"; do
+                colorname="${ThemeColors[${key}]}"
+                colorvalue=$(awk -F'#' -v K="$key" '$0~K{print $3; exit}' "$themes_dir"/"$name")
+                echo "$colorvalue"
+                sed -i "s/var ${colorname}/var ${ThemeColors[${key}]} ${colorvalue}/" \
+                "$profiles_dir"/profile_"$name"
+            done
+	        break
+        done
+    ;;
+    x|X)
+        read -rp ' Enter a profile name: ' name
+        _copyProfileAs
+        for x in "${XresourcesColors[@]}"; do
+            colorvalue=$(xrdb -query | awk -F'#' -v X="$x" '$0~X{print $2; exit}')
+            echo "$colorvalue"
+            sed -i "s/var ${x}/var ${x} ${colorvalue}/" profile_"$name"
+        done
+    ;;
+    *)
+        echo " Wrong option '$create'...exiting" && exit 1
+    ;;
+esac
+
+etcProfiles="/etc/g810-led/profiles"
+sudo mkdir -p "$etcProfiles"
+sudo cp -f profile_"$name" "$etcProfiles"/profile_"$name"
+
+read -rp " Apply $name? [Y/n]: "
+case "$REPLY" in
+    y|Y)
+        "$myModelBinary" -pp < "$etcProfiles"/profile_"$name"
+        sudo sed -i "s/${profile}/profile_${name}/" "$rules"
+        polybar-msg \
+        -p "$(pgrep --full "$(wmctrl -m | awk '/Name/{print $2}')"-bar-2)" \
+        action "#ksp-ipc.hook.0" >/dev/null 2>&1
+    ;;
+    n|N)
+        exit 0
+    ;;
+    *)
+        echo " wrong option $REPLY...exiting" && exit 1
+    ;;
+esac

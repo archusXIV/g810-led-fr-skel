@@ -1,0 +1,83 @@
+#!/bin/bash
+
+# Author: Barret E <https://github.com/archusXIV>
+# Usage: g810_delete_profile <profile_name>
+#    or: g810_delete_profile (no argument & we'll get a menu)
+# Fill the myModelName variable with your supported keyboard.
+# G213 G410 G413 G512 G513 G610 G810 G815 G910 Gpro,
+# and the myModelBinary in lower case suffixed with '-led'
+# use lsusb to find out your model name & model id
+
+myModelName=G815
+myModelId=c33f
+myModelBinary=g815-led
+
+! grep -q "$myModelName" < <(lsusb) && {
+    echo "$myModelName is not plugged in, exiting..."
+    exit 127
+}
+
+profiles_dir="/etc/g810-led/profiles"
+cd "$profiles_dir" || exit 1
+
+config_dir="$HOME/.config/g810-led/profiles"
+rules="/etc/udev/rules.d/g810-led.rules"
+profile=$(grep -e "$myModelId" "$rules" | sed 's,.*/,,;s/"//')
+# echo "$profile" && exit
+
+if [[ $1 = default ]]; then
+    echo "You cannot delete $1 profile..." && exit 0
+elif [[ profile_"$1" = "$profile" ]]; then
+
+    "$myModelBinary" -pp < profile_default
+    sudo sed -i "s/profile_${1}/profile_default/" "$rules"
+    sudo rm profile_"$1"
+    rm "$config_dir"/profile_"$1"
+    echo " profile $1 deleted."
+
+elif [[ ! -f profile_$1 ]]; then
+
+	[[ -z $1 ]] && echo -e " no argument given...\n" || \
+	echo -e " $1 does not exist.\n"
+
+	awk -v ID="$myModelId" -v PFL="$profile" '
+		$0~ID{
+			gsub("/","")
+			sub("[\"]","")
+			}
+		{ print " in use: "PFL" "; exit }
+	' "$rules" | sed 's/profile_//'
+	printf '\n'
+
+	PS3=""$'\n'" Choose a RGB profile to delete: "
+    select name in $(
+            find . \
+            -type f \
+            -not -name "profile_default" \
+            -name "profile_*" \
+	        | sort \
+            | sed 's,.*/,,;s/profile_//'
+        ); do
+
+	    "$myModelBinary" -pp < profile_default
+        sudo sed -i "s/${profile}/profile_default/" "$rules"
+        sudo rm profile_"$name"
+        rm "$config_dir"/profile_"$name"
+		echo " profile $name deleted."
+	    break
+        
+    done
+fi
+
+polybar-msg \
+-p "$(pgrep --full "$(wmctrl -m | awk '/Name/{print $2}')"-bar-2)" \
+action "#ksp-ipc.hook.0" >/dev/null 2>&1
+
+profile_rules="/etc/udev/rules.d/g810-led.rules"
+profile_udev=$(grep -e 'profile_' "$profile_rules" | sed 's,.*/,,;s/"//')
+muteKeyOn=$(awk '/^var color1/{print $NF}' "$profiles_dir"/"$profile_udev" >/dev/null)
+
+[[ -s "$XDG_RUNTIME_DIR"/scratchpad_hidden.list ]] \
+&& "$myModelBinary" -fx breathing logo fb4934 5
+[[ $(pactl get-sink-mute "$(pactl get-default-sink)") == 'Mute: yes' ]] \
+&& "$myModelBinary" -k mute "$muteKeyOn"
