@@ -5,13 +5,13 @@
 # color4=blu color5=magenta color6=cyan color7=white
 
 var color0 000000
-var color1
-var color2
-var color3
-var color4
-var color5
-var color6
-var color7
+var color1 d26939
+var color2 26a98b
+var color3 edb54b
+var color4 195465
+var color5 9270ab
+var color6 599caa
+var color7 d3ebe9
 
 ### k=keys & g=groups for french azerty keyboard ###
 
