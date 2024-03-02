@@ -7,7 +7,7 @@ I'd like to thanks Matmoul for his project [g810-led](https://github.com/MatMoul
 ## Supported models
 - G213 G410 G413 G512 G513 G610 G810 G815 G910 Gpro
 
-![screenshot](https://github.com/archusXIV/g810-led-fr-skel/tree/main/g815-gallery-2-nb.webp)
+![screenshot](https://github.com/archusXIV/g810-led-fr-skel/blob/main/g815-qwerty.webp)
 ## How to install?
 - First following this page:
     - https://github.com/MatMoul/g810-led/blob/master/INSTALL.md
