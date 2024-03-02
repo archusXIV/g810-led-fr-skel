@@ -14,7 +14,7 @@ myModelBinary=g815-led
 
 ! grep -q "$myModelName" < <(lsusb) && {
     echo "$myModelName is not plugged in, exiting..."
-    exit 127
+    exit 1
 }
 
 profiles_dir="/etc/g810-led/profiles"
