@@ -35,15 +35,16 @@ k mute $color3
 
 ## raw 2                 # { fr_FR equivalent }
 k tilde $color4          # { œ Œ “ } 
-k 1 $color1
-k 2 $color1
-k 3 $color1
-k 4 $color1
-k 5 $color1
-k 6 $color1
-k 7 $color1
-k 8 $color1
-k 0 $color1
+k 1 $color1              # { & 1 ' }
+k 2 $color1              # { é 2 ~ }
+k 3 $color1              # { " 3 # }
+k 4 $color1              # { ' 4 { }
+k 5 $color1              # { ( 5 [ }
+k 6 $color1              # { - 6 | }
+k 7 $color1              # { è 7 ` }
+k 8 $color1              # { _ 8 \ }
+k 9 $color1              # { ç 9 ^ }
+k 0 $color1              # { à 0 @ }
 k minus $color1          # { ) ° ] }
 k equal $color1          # { = + } }
 k backspace $color2
