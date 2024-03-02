@@ -24,7 +24,6 @@ g indicators $color3
 ## raw 1
 k escape $color2
 g fkeys $color5
-k f10 $color7
 k print_screen $color7
 k scroll_lock $color7
 k pause_break $color7

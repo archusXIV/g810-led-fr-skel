@@ -1,7 +1,20 @@
 # g810-led-fr-skel for linux
 create, delete or switch g810-led profiles for AZERTY fr_FR Logitech keyboards.
 
-Profiles depend on a [skeleton](https://github.com/archusXIV/g810-led-fr-skel/blob/main/profile_skel) file that you can edit before installation, keys names are organized by raws based on a latin1 fr_CH layout because the g810-led project started like this. But here the translation is done simply by removing keys or placing them in the right raw.
+Profiles depend on a [skeleton](https://github.com/archusXIV/g810-led-fr-skel/blob/main/profile_skel) file that you can edit before installation, keys names are organized by raws based on a latin1 fr_CH layout because the g810-led project started like this. But here the translation is done simply by removing keys or placing them in the right raw for a fr_FR layout.
+
+## Groups examples
+- The modifiers keys are associated with keys in the same color (red).
+- Direction keys: hjkl (vim), arrows, home, end, pageup, pagedown (yellow).
+- F1 -> F12 (magenta).
+- Multimedia keys (green) mute key (yellow).
+- function keys (white).
+- gaming keys disabled by default (black 000000, change this only).
+
+```
+g810-led -g gkeys ffffff
+```
+
 ```
 g810-led --help-keys
 ```
