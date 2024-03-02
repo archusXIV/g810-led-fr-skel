@@ -34,7 +34,7 @@ k next $color2
 k mute $color3
 
 ## raw 2                 # { fr_FR equivalent }
-k tilde $color4          # { œ Œ “ } 
+k tilde $color4          # { œ Œ “ }
 k 1 $color1              # { & 1 ' }
 k 2 $color1              # { é 2 ~ }
 k 3 $color1              # { " 3 # }
@@ -58,7 +58,7 @@ k numminus $color2
 
 ## raw 3
 k tab $color5
-k q $color4              # a 
+k q $color4              # a
 k w $color4              # z
 k e $color4
 k r $color4
