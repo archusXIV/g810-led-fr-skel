@@ -71,27 +71,35 @@ case "$create" in
         done
     ;;
     t|T)
-        PS3=""$'\n'" Choose a theme: "
-        select name in $(find "$themes_dir" -type f | sort | sed 's,.*/,,'); do
-            _copyProfileAs
-	        for key in "${!ThemeColors[@]}"; do
-                colorname="${ThemeColors[${key}]}"
-                colorvalue=$(awk -F'#' -v K="$key" '$0~K{print $3; exit}' "$themes_dir"/"$name")
-                echo "$colorvalue"
-                sed -i "s/var ${colorname}/var ${ThemeColors[${key}]} ${colorvalue}/" \
-                "$profiles_dir"/profile_"$name"
+        if [[ -d $themes_dir ]]; then
+            PS3=""$'\n'" Choose a theme: "
+            select name in $(find "$themes_dir" -type f | sort | sed 's,.*/,,'); do
+                _copyProfileAs
+	            for key in "${!ThemeColors[@]}"; do
+                    colorname="${ThemeColors[${key}]}"
+                    colorvalue=$(awk -F'#' -v K="$key" '$0~K{print $3; exit}' "$themes_dir"/"$name")
+                    echo "$colorvalue"
+                    sed -i "s/var ${colorname}/var ${ThemeColors[${key}]} ${colorvalue}/" \
+                    "$profiles_dir"/profile_"$name"
+                done
+	            break
             done
-	        break
-        done
+        else
+            echo " $themes_dir does not exist...exiting" && exit 127
+        fi
     ;;
     x|X)
-        read -rp ' Enter a profile name: ' name
-        _copyProfileAs
-        for x in "${XresourcesColors[@]}"; do
-            colorvalue=$(xrdb -query | awk -F'#' -v X="$x" '$0~X{print $2; exit}')
-            echo "$colorvalue"
-            sed -i "s/var ${x}/var ${x} ${colorvalue}/" profile_"$name"
-        done
+        if [[ -f $HOME/.Xresources ]]; then
+            read -rp ' Enter a profile name: ' name
+            _copyProfileAs
+            for x in "${XresourcesColors[@]}"; do
+                colorvalue=$(xrdb -query | awk -F'#' -v X="$x" '$0~X{print $2; exit}')
+                echo "$colorvalue"
+                sed -i "s/var ${x}/var ${x} ${colorvalue}/" profile_"$name"
+            done
+        else
+            echo " $HOME/.Xresources does not exist...exiting" && exit 1
+        fi
     ;;
     *)
         echo " Wrong option '$create'...exiting" && exit 1
