@@ -13,8 +13,15 @@ myModelId=c33f
 myModelBinary=g815-led
 
 ! grep -q "$myModelName" < <(lsusb) && {
+
+    [[ -z $(command -v $myModelBinary) ]] && {
+    echo " $myModelBinary not found...exiting"
+    exit 127
+    }
+
     echo "$myModelName is not plugged in, exiting..."
     exit 1
+    
 }
 
 profiles_dir="$HOME/.config/g810-led/profiles"
