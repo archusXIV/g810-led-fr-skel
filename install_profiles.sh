@@ -5,6 +5,7 @@
 : "${XDG_CONFIG_HOME:-$HOME/.config}"
 
 mkdir -p "$XDG_CONFIG_HOME"/g810-led/{profiles,themes}
+cp ./{profile,group}_skel "$XDG_CONFIG_HOME"/g810-led/
 cp ./profiles/* "$XDG_CONFIG_HOME"/g810-led/profiles/
 cp ./themes/* "$XDG_CONFIG_HOME"/g810-led/themes/
 
