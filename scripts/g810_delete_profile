@@ -72,11 +72,12 @@ elif [[ profile_$1 != "$profile" ]]; then
             sudo rm profile_"$name"
             rm "$config_dir"/profile_"$name"
 		    echo " profile $name deleted."
-            
+        else
+            sudo rm profile_"$name"
+            rm "$config_dir"/profile_"$name"
+		    echo " profile $name deleted."
         fi
         
         break
     done
 fi
-
-g810_witness

@@ -93,7 +93,7 @@ _main() {
             for m in "${XresourcesColors[@]}"; do
                 printf '\n'
                 printf '%s\n' " color1=red color2=green color3=yellow color4=blu " \
-                              " color5=magenta color6=cyan color7=white"
+                " color5=magenta color6=cyan color7=white"
                 printf '\n'
                 read -rp " Enter an hex color value for $m: " clr
                 sed -i "s/var ${m}/var ${m} ${clr}/" profile_"$name"
