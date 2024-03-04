@@ -15,8 +15,8 @@ myModelBinary=g815-led
 ! grep -q "$myModelName" < <(lsusb) && {
 
     [[ -z $(command -v $myModelBinary) ]] && {
-    echo " $myModelBinary not found...exiting"
-    exit 127
+        echo " $myModelBinary not found...exiting"
+        exit 127
     }
 
     echo "$myModelName is not plugged in, exiting..."
@@ -26,9 +26,11 @@ myModelBinary=g815-led
 
 profiles_dir="$HOME/.config/g810-led/profiles"
 profileSkel="$HOME/.config/g810-led/profile_skel"
+groupSkell="$HOME/.config/g810-led/group_skel"
 themes_dir="$HOME/.config/g810-led/themes"
 rules="/etc/udev/rules.d/g810-led.rules"
 profile=$(grep -e "$myModelId" "$rules" | sed 's,.*/,,;s/"//')
+etcProfiles="/etc/g810-led/profiles"
 
 XresourcesColors=(
     color1 color2 color3 color4 color5 color6 color7
@@ -48,78 +50,105 @@ declare -A ThemeColors=(
 cd "$profiles_dir" || exit 1
 
 _copyProfileAs() {
-    cp "$profileSkel" "$profiles_dir"/profile_"$name"
-    sed -i "1s/^/# profile_$name\n/" profile_"$name"
-    clear
+    case "$1" in
+        -g)
+            cp "$groupSkell" "$profiles_dir"/profile_"$name"
+            sed -i "1s/^/# groups_$name\n/" profile_"$name"
+            clear
+        ;;
+        -k)
+            cp "$profileSkel" "$profiles_dir"/profile_"$name"
+            sed -i "1s/^/# profile_$name\n/" profile_"$name"
+            clear
+        ;;
+    esac
 }
 
-read -rp " create [M]anually, from a [T]heme or from [X]resources: " create
-printf '\n'
+_ifTypeIs() {
+    if [[ $type =~ g|G ]]; then
+        _copyProfileAs -g
+    else
+        _copyProfileAs -k
+    fi
+}
 
-case "$create" in
-    m|M)
-        read -rp ' Enter a profile name: ' name
-        _copyProfileAs
-        for m in "${XresourcesColors[@]}"; do
-            printf '\n'
-            printf '%s\n' " color1=red color2=green color3=yellow color4=blu " \
-                          " color5=magenta color6=cyan color7=white"
-            printf '\n'
-            read -rp " Enter an hex color value for $m: " clr
-            sed -i "s/var ${m}/var ${m} ${clr}/" profile_"$name"
-            clear
-        done
-    ;;
-    t|T)
-        if [[ -d $themes_dir ]]; then
-            PS3=""$'\n'" Choose a theme: "
-            select name in $(find "$themes_dir" -type f | sort | sed 's,.*/,,'); do
-                _copyProfileAs
-	            for key in "${!ThemeColors[@]}"; do
-                    colorname="${ThemeColors[${key}]}"
-                    colorvalue=$(awk -F'#' -v K="$key" '$0~K{print $3; exit}' "$themes_dir"/"$name")
-                    echo "$colorvalue"
-                    sed -i "s/var ${colorname}/var ${ThemeColors[${key}]} ${colorvalue}/" \
-                    "$profiles_dir"/profile_"$name"
-                done
-	            break
-            done
-        else
-            echo " $themes_dir does not exist...exiting" && exit 127
-        fi
-    ;;
-    x|X)
-        if [[ -f $HOME/.Xresources ]]; then
+_saveAs() {
+    sudo mkdir -p "$etcProfiles"
+    sudo cp -f profile_"$name" "$etcProfiles"/profile_"$name"
+
+    read -rp " Apply $name? [Y/n]: "
+    case "$REPLY" in
+        y|Y)
+            "$myModelBinary" -pp < "$etcProfiles"/profile_"$name"
+            sudo sed -i "s/${profile}/profile_${name}/" "$rules"
+        ;;
+        n|N)
+            exit 0
+        ;;
+        *)
+            echo " wrong option $REPLY...exiting" && exit 1
+        ;;
+    esac
+}
+
+_main() {
+    read -rp " create a [G]roup or a [K]eys profile? " type
+    read -rp " create [M]anually, from a [T]heme or from [X]resources: " create
+    printf '\n'
+    case "$create" in
+        m|M)
             read -rp ' Enter a profile name: ' name
-            _copyProfileAs
-            for x in "${XresourcesColors[@]}"; do
-                colorvalue=$(xrdb -query | awk -F'#' -v X="$x" '$0~X{print $2; exit}')
-                echo "$colorvalue"
-                sed -i "s/var ${x}/var ${x} ${colorvalue}/" profile_"$name"
+            _ifTypeIs
+            for m in "${XresourcesColors[@]}"; do
+                printf '\n'
+                printf '%s\n' " color1=red color2=green color3=yellow color4=blu " \
+                              " color5=magenta color6=cyan color7=white"
+                printf '\n'
+                read -rp " Enter an hex color value for $m: " clr
+                sed -i "s/var ${m}/var ${m} ${clr}/" profile_"$name"
+                clear
             done
-        else
-            echo " $HOME/.Xresources does not exist...exiting" && exit 1
-        fi
-    ;;
-    *)
-        echo " Wrong option '$create'...exiting" && exit 1
-    ;;
-esac
+        ;;
+        t|T)
+            if [[ -d $themes_dir ]]; then
+                PS3=""$'\n'" Choose a theme: "
+                select name in $(find "$themes_dir" -type f | sort | sed 's,.*/,,'); do
+                    _ifTypeIs
+    	            for key in "${!ThemeColors[@]}"; do
+                        colorname="${ThemeColors[${key}]}"
+                        colorvalue=$(
+                            awk -F'#' -v K="$key" '$0~K{print $3; exit}
+                        ' "$themes_dir"/"$name"
+                        )
+                        echo "$colorvalue"
+                        sed -i "s/var ${colorname}/var ${ThemeColors[${key}]} ${colorvalue}/" \
+                        "$profiles_dir"/profile_"$name"
+                    done
+    	            break
+                done
+            else
+                echo " $themes_dir does not exist...exiting" && exit 1
+            fi
+        ;;
+        x|X)
+            if [[ -f $HOME/.Xresources ]]; then
+                read -rp ' Enter a profile name: ' name
+                _ifTypeIs
+                for x in "${XresourcesColors[@]}"; do
+                    colorvalue=$(xrdb -query | awk -F'#' -v X="$x" '$0~X{print $2; exit}')
+                    echo "$colorvalue"
+                    sed -i "s/var ${x}/var ${x} ${colorvalue}/" profile_"$name"
+                done
+            else
+                echo " $HOME/.Xresources does not exist...exiting" && exit 1
+            fi
+        ;;
+        *)
+            echo " Wrong option '$create'...exiting" && exit 1
+        ;;
+    esac
 
-etcProfiles="/etc/g810-led/profiles"
-sudo mkdir -p "$etcProfiles"
-sudo cp -f profile_"$name" "$etcProfiles"/profile_"$name"
+    _saveAs
+}
 
-read -rp " Apply $name? [Y/n]: "
-case "$REPLY" in
-    y|Y)
-        "$myModelBinary" -pp < "$etcProfiles"/profile_"$name"
-        sudo sed -i "s/${profile}/profile_${name}/" "$rules"
-    ;;
-    n|N)
-        exit 0
-    ;;
-    *)
-        echo " wrong option $REPLY...exiting" && exit 1
-    ;;
-esac
+_main "${@}"
