@@ -15,8 +15,8 @@ myModelBinary=g815-led
 ! grep -q "$myModelName" < <(lsusb) && {
 
     [[ -z $(command -v $myModelBinary) ]] && {
-    echo " $myModelBinary not found...exiting"
-    exit 127
+        echo " $myModelBinary not found...exiting"
+        exit 127
     }
 
     echo "$myModelName is not plugged in, exiting..."
@@ -30,18 +30,17 @@ cd "$profiles_dir" || exit 1
 config_dir="$HOME/.config/g810-led/profiles"
 rules="/etc/udev/rules.d/g810-led.rules"
 profile=$(grep -e "$myModelId" "$rules" | sed 's,.*/,,;s/"//')
-# echo "$profile" && exit
 
 if [[ $1 = default ]]; then
     echo "You cannot delete $1 profile..." && exit 0
-elif [[ profile_"$1" = "$profile" ]]; then
+elif [[ profile_$1 = "$profile" ]]; then
 
     "$myModelBinary" -pp < profile_default
-    sudo sed -i "s/profile_${1}/profile_default/" "$rules"
+    sudo sed -i "s/${profile}/profile_default/" "$rules"
     sudo rm profile_"$1"
     rm "$config_dir"/profile_"$1"
-    echo " profile $1 deleted."
-
+	echo " profile $1 deleted."
+    
 elif [[ profile_$1 != "$profile" ]]; then
 
 	[[ -z $1 ]] && echo -e " no argument given...\n" || \
@@ -66,12 +65,18 @@ elif [[ profile_$1 != "$profile" ]]; then
             | sed 's,.*/,,;s/profile_//'
         ); do
 
-	    "$myModelBinary" -pp < profile_default
-        sudo sed -i "s/${profile}/profile_default/" "$rules"
-        sudo rm profile_"$name"
-        rm "$config_dir"/profile_"$name"
-		echo " profile $name deleted."
-	    break
+        if [[ profile_$name = "$profile" ]]; then
+
+	        "$myModelBinary" -pp < profile_default
+            sudo sed -i "s/${profile}/profile_default/" "$rules"
+            sudo rm profile_"$name"
+            rm "$config_dir"/profile_"$name"
+		    echo " profile $name deleted."
+            
+        fi
         
+        break
     done
 fi
+
+g810_witness
