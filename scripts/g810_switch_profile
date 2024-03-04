@@ -24,8 +24,8 @@ myModelBinary=g815-led
     
 }
 
-profiles_dir="$HOME/.config/g810-led/profiles"
-cd "$profiles_dir" || exit 1
+config_dir="$HOME/.config/g810-led/profiles"
+cd "$config_dir" || exit 1
 
 rules="/etc/udev/rules.d/g810-led.rules"
 profile=$(grep -e "$myModelId" "$rules" | sed 's,.*/,,;s/"//')
