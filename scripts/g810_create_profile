@@ -49,26 +49,17 @@ declare -A ThemeColors=(
 
 cd "$profiles_dir" || exit 1
 
-_copyProfileAs() {
-    case "$1" in
-        -g)
-            cp "$groupSkell" "$profiles_dir"/profile_"$name"
-            sed -i "1s/^/# groups_$name\n/" profile_"$name"
-            clear
-        ;;
-        -k)
-            cp "$profileSkel" "$profiles_dir"/profile_"$name"
-            sed -i "1s/^/# profile_$name\n/" profile_"$name"
-            clear
-        ;;
-    esac
-}
-
 _ifTypeIs() {
     if [[ $type =~ g|G ]]; then
-        _copyProfileAs -g
+        cp "$groupSkell" "$profiles_dir"/profile_"$name"
+        sed -i "1s/^/# groups_$name\n/" profile_"$name"
+        clear
+    elif [[ $type =~ k|K ]]; then
+        cp "$profileSkel" "$profiles_dir"/profile_"$name"
+        sed -i "1s/^/# profile_$name\n/" profile_"$name"
+        clear
     else
-        _copyProfileAs -k
+        echo " Wrong option $type...exiting" && exit 1
     fi
 }
 
