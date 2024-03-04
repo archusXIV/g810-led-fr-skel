@@ -62,12 +62,25 @@ myModelName=G815
 myModelId=c33f
 myModelBinary=g815-led # lower case
 ```
-Then in a terminal run:
+- Now it's time to create your first group or key profile.
+    - groups are described above...
+    - key profiles also use groups but some keys have different colors than the group to which they belong.
+    - A prompt will appear to let you choose between the two methods.
+
+
 ```
 g810_create_profile
-# or
-g810_switch_profile
-# or
-g810_delete_profile
 ```
+- Next command can be launched with an argument or not.
+```
+g810_switch_profile gruvbox
+```
+- Deleting profiles can also be done with an argument or not.
+If you delete the profile in use, the default one will be set.
+```
+g810_delete_profile gruvbox
+```
+- The last chosen profile will be launched when rebooting your machine using **udev rules** so be aware of that. Have fun!
+
+
 
