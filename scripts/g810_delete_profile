@@ -42,7 +42,7 @@ elif [[ profile_"$1" = "$profile" ]]; then
     rm "$config_dir"/profile_"$1"
     echo " profile $1 deleted."
 
-elif [[ ! -f profile_$1 ]]; then
+elif [[ profile_$1 != "$profile" ]]; then
 
 	[[ -z $1 ]] && echo -e " no argument given...\n" || \
 	echo -e " $1 does not exist.\n"
