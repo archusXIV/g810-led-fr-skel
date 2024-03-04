@@ -1,4 +1,4 @@
-# g810-led-fr-skel for linux
+# g810-led profile fr_FR skeleton for linux
 create, delete or switch g810-led profiles for AZERTY fr_FR Logitech keyboards.
 
 Profiles depend on a [profile_skel](https://github.com/archusXIV/g810-led-fr-skel/blob/main/profile_skel) file that you can edit before installation, keys names are organized by raws based on a latin1 fr_CH layout because the g810-led project started like this. But here the translation is done simply by removing keys or placing them in the right raw for a fr_FR layout.
