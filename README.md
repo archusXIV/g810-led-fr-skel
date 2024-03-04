@@ -44,6 +44,8 @@ sudo make install
 - Your keyboard should light on with the default profile provided by Matmoul.
 - Now run the install script:
 ```
+git clone https://github.com/archusXIV/g810-led-fr-skel.git
+cd g810-led-fr-skell
 chmod +x ./install_profiles.sh && ./install_profiles.sh
 cp ./scripts/g810_{create,delete,switch}_profile "$HOME/.local/bin"
 # ... if ~/.local/bin is in your $PATH
