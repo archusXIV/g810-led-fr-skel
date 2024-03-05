@@ -24,8 +24,8 @@ myModelBinary=g815-led
     
 }
 
-profiles_dir="/etc/g810-led/profiles"
-cd "$profiles_dir" || exit 1
+etcProfiles="/etc/g810-led/profiles"
+cd "$etcProfiles" || exit 1
 
 config_dir="$HOME/.config/g810-led/profiles"
 rules="/etc/udev/rules.d/g810-led.rules"

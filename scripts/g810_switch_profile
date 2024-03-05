@@ -15,8 +15,8 @@ myModelBinary=g815-led
 ! grep -q "$myModelName" < <(lsusb) && {
 
     [[ -z $(command -v $myModelBinary) ]] && {
-    echo " $myModelBinary not found...exiting"
-    exit 127
+    	echo " $myModelBinary not found...exiting"
+    	exit 127
     }
 
     echo "$myModelName is not plugged in, exiting..."
@@ -24,20 +24,20 @@ myModelBinary=g815-led
     
 }
 
-config_dir="$HOME/.config/g810-led/profiles"
-cd "$config_dir" || exit 1
+profiles_dir="$HOME/.config/g810-led/profiles"
+cd "$profiles_dir" || exit 1
 
 rules="/etc/udev/rules.d/g810-led.rules"
 profile=$(grep -e "$myModelId" "$rules" | sed 's,.*/,,;s/"//')
 profile_name="$1"
 
 if [[ -f profile_$1 ]]; then
-	
+
     "$myModelBinary" -pp < profile_"$profile_name"
     sudo sed -i "s/${profile}/profile_${profile_name}/" "$rules"
-
+	
 elif [[ ! -f profile_$1 ]]; then
-
+	
 	[[ -z $1 ]] && echo -e " no argument given...\n" || \
 	echo -e " $1 does not exist.\n"
 
