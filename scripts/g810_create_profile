@@ -5,7 +5,6 @@
 # from our current ~/.Xresources colors or from an existing Xresources theme.
 # Fill the myModelName variable with your supported keyboard.
 # G213 G410 G413 G512 G513 G610 G810 G815 G910 Gpro,
-# and the myModelBinary in lower case suffixed with '-led'
 # use lsusb to find out your model name & model id
 
 myModelName=G815

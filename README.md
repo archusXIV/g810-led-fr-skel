@@ -51,7 +51,7 @@ cp ./scripts/g810_{create,delete,switch}_profile "$HOME/.local/bin"
 # ... if ~/.local/bin is in your $PATH
 ```
 ## How to use?
-- First modify the [scripts](https://github.com/archusXIV/g810-led-fr-skel/tree/main/scripts) variables myModel{Name,Id,Binary} values according to your keyboard model.
+- First modify the [scripts](https://github.com/archusXIV/g810-led-fr-skel/tree/main/scripts) variables myModel{Name,Id} values according to your keyboard model.
 ```
 lsusb | grep -i keyboard
 # Bus 003 Device 003: ID 046d:c33f Logitech, Inc. G815 Mechanical Keyboard
@@ -60,7 +60,6 @@ lsusb | grep -i keyboard
 ```
 myModelName=G815
 myModelId=c33f
-myModelBinary=g815-led # lower case
 ```
 - Now it's time to create your first group or key profile.
     - groups are described above...
