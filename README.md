@@ -1,10 +1,19 @@
-# g810-led profile fr_FR skeleton for linux
-create, delete or switch g810-led profiles for AZERTY fr_FR Logitech keyboards.
+# g810-led profile skeletons for Linux
+Create, delete or switch g810-led profiles for Logitech keyboards using layout-specific skeletons.
+
+This project originally targeted French AZERTY keyboards, and it now also includes a US QWERTY variant. The layout files are kept separate so the color logic stays consistent while the key names and layout mapping change.
 
 Youtube [video](https://www.youtube.com/watch?v=sfBx5aLTEFM), french spoken.
 
-Profiles depend on a [profile_skel](https://github.com/archusXIV/g810-led-fr-skel/blob/main/profile_skel) file that you can edit before installation, keys names are organized by raws based on a latin1 fr_CH layout because the g810-led project started like this. But here the translation is done simply by removing keys or placing them in the right raw for a fr_FR layout.
-Note that a [group_skel](https://github.com/archusXIV/g810-led-fr-skel/blob/main/group_skel) is also provided.
+Profiles depend on a layout skeleton file such as [skeletons/FR/profile_skel](skeletons/FR/profile_skel) or [skeletons/US/profile_skel](skeletons/US/profile_skel), which you can edit before installation. The keys are organized by rows and grouped to match the underlying g810-led key mapping. The project keeps the same color assignment scheme across layouts; only the physical key names are remapped.
+
+A matching group skeleton is also provided, such as [skeletons/FR/group_skel](skeletons/FR/group_skel) and [skeletons/US/group_skel](skeletons/US/group_skel).
+
+## Layout variants
+- French AZERTY: [skeletons/FR/profile_skel](skeletons/FR/profile_skel), [skeletons/FR/group_skel](skeletons/FR/group_skel)
+- US QWERTY: [skeletons/US/profile_skel](skeletons/US/profile_skel), [skeletons/US/group_skel](skeletons/US/group_skel)
+
+The generated profiles live under [profiles](profiles) and can be customized with your own palette values.
 
 ## Groups examples
 - The modifiers keys (red).
@@ -30,7 +39,7 @@ I'd like to thanks Matmoul for his project [g810-led](https://github.com/MatMoul
 
 ![screenshot](https://github.com/archusXIV/g810-led-fr-skel/blob/main/g815_qwerty.jpg)
 ## How to install?
-- First following this page:
+- First follow this page:
     - [install instructions](https://github.com/MatMoul/g810-led/blob/master/INSTALL.md)
     - If it fails: [AUR solution](https://aur.archlinux.org/packages/g810-led-git#comment-919059)
 ```
@@ -45,21 +54,17 @@ sudo make install
 - Now run the install script:
 ```
 git clone https://github.com/archusXIV/g810-led-fr-skel.git
-cd g810-led-fr-skell
+cd g810-led-fr-skel
 chmod +x ./install_profiles.sh && ./install_profiles.sh
 cp ./scripts/g810_{create,delete,switch}_profile "$HOME/.local/bin"
 # ... if ~/.local/bin is in your $PATH
 ```
+- To use a specific layout template, copy the desired skeleton into the project root before generating a profile, or start from the matching file under [skeletons](skeletons).
 ## How to use?
-- First modify the [scripts](https://github.com/archusXIV/g810-led-fr-skel/tree/main/scripts) variables myModel{Name,Id} values according to your keyboard model.
+- First run this command to verify your keyboard model.
 ```
 lsusb | grep -i keyboard
 # Bus 003 Device 003: ID 046d:c33f Logitech, Inc. G815 Mechanical Keyboard
-```
-- Your variables should look like this:
-```
-myModelName=G815
-myModelId=c33f
 ```
 - Now it's time to create your first group or key profile.
     - groups are described above...
@@ -74,6 +79,7 @@ g810_create_profile
 ```
 g810_switch_profile gruvbox
 ```
+- You can also use a custom profile name created from a layout skeleton, for example the US template.
 - Deleting profiles can also be done with an argument or not.
 If you delete the profile in use, the default one will be set.
 ```

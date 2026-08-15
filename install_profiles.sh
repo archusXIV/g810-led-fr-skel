@@ -1,16 +1,44 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Author: Barret E <https://github.com/archusXIV>
 
 : "${XDG_CONFIG_HOME:-$HOME/.config}"
 
+layout_dir=""
+while true; do
+    echo -e "\nChoose a keyboard layout:"
+    echo -en "  1) French AZERTY\n  2) American QWERTY"
+    read -rp "Selection [1/2]: " layout_choice
+    case "$layout_choice" in
+        1)
+            layout_dir="$(dirname "$0")/skeletons/FR"
+            break
+        ;;
+        2)
+            layout_dir="$(dirname "$0")/skeletons/US"
+            break
+        ;;
+        *)
+            echo "Invalid choice. Please enter 1 or 2."
+        ;;
+    esac
+done
+
+if [[ ! -d "$layout_dir" ]]; then
+    echo "Selected layout directory not found: $layout_dir"
+    exit 1
+fi
+
 mkdir -p "$XDG_CONFIG_HOME"/g810-led/{profiles,themes}
-cp ./{profile,group}_skel "$XDG_CONFIG_HOME"/g810-led/
-cp ./profiles/* "$XDG_CONFIG_HOME"/g810-led/profiles/
-cp ./themes/* "$XDG_CONFIG_HOME"/g810-led/themes/
+cp -f "$layout_dir"/profile_skel "$XDG_CONFIG_HOME"/g810-led/profile_skel
+cp -f "$layout_dir"/group_skel "$XDG_CONFIG_HOME"/g810-led/group_skel
+cp -f ./profiles/* "$XDG_CONFIG_HOME"/g810-led/profiles/
+cp -f ./themes/* "$XDG_CONFIG_HOME"/g810-led/themes/
 
 chmod +x ./scripts/g810_{create,delete,switch}_profile
 
 sudo cp -f ./g810-led.rules /etc/udev/rules.d/
 sudo mkdir -p /etc/g810-led/profiles
 sudo cp -f ./profiles/* /etc/g810-led/profiles/
+
+printf '\nInstalled layout skeletons for %s into %s\n' "$(basename "$layout_dir")" "$XDG_CONFIG_HOME/g810-led"

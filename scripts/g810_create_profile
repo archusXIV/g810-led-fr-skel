@@ -1,37 +1,32 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Author: Barret E <https://github.com/archusXIV>
 # Create g810-led colorschemes (profiles) from a skeleton file: manually,
 # from our current ~/.Xresources colors or from an existing Xresources theme.
-# Fill the myModelName variable with your supported keyboard.
-# G213 G410 G413 G512 G513 G610 G810 G815 G910 Gpro,
-# use lsusb to find out your model name & model id
+# supported keyboard: G213 G410 G413 G512 G513 G610 G810 G815 G910 Gpro,
 
-myModelName=G815
-myModelId=c33f
+# shellcheck disable=SC2024
+myModelName=$(awk '/Keyboard/{print $9}' < <(lsusb))
+myModelBinary="${myModelName,}-led"
 
 ! grep -q "$myModelName" < <(lsusb) && {
-
-    [[ -z $(command -v g810-led) ]] && {
-        echo " g810-led not found...exiting"
+    [[ -z $(command -v "$myModelBinary") ]] && {
+        echo " No g810-led related binary found...exiting"
         exit 127
     }
-
     echo "$myModelName is not plugged in, exiting..."
     exit 1
-    
 }
 
 config_dir="$HOME/.config/g810-led"
 profiles_dir="$config_dir/profiles"
-profileSkel="$config_dir/profile_skel"
-groupSkell="$config_dir/group_skel"
+profile_skel="$config_dir/profile_skel"
+group_skel="$config_dir/group_skel"
 themes_dir="$config_dir/themes"
-rules="/etc/udev/rules.d/g810-led.rules"
-etcProfiles="/etc/g810-led/profiles"
-profile=$(grep -e "$myModelId" "$rules" | sed 's,.*/,,;s/"//')
+etc_confdir="/etc/g810-led"
+etc_profiles="/etc/g810-led/profiles"
 
-XresourcesColors=(
+declare -a XresourcesColors=(
     color1 color2 color3 color4 color5 color6 color7
 )
 
@@ -49,113 +44,94 @@ declare -A ThemeColors=(
 cd "$profiles_dir" || exit 1
 
 _main() {
+    local profile_name type
     read -rp " create a [G]roup or a [K]eys profile? " type
     read -rp " create [M]anually, from a [T]heme or from [X]resources: " create
     printf '\n'
     case "$create" in
         m|M)
-            read -rp ' Enter a profile name: ' name
+            read -rp ' Enter a profile name: ' profile_name
+            [[ -f $profile_name ]] && {
+                echo " $profile_name already exists, exiting.."
+                exit 1
+            }
             _ifTypeIs
             for m in "${XresourcesColors[@]}"; do
                 printf '\n'
-                printf '%s\n' " color1=red color2=green color3=yellow color4=blu " \
+                printf '%s\n' " color1=red color2=green color3=yellow color4=blue " \
                               " color5=magenta color6=cyan color7=white"
                 printf '\n'
                 read -rp " Enter an hex color value for $m: " clr
-                sed -i "s/var ${m}/var ${m} ${clr}/" profile_"$name"
+                sed -i "s/var ${m}/var ${m} ${clr}/" "$profile_name"
                 clear
             done
         ;;
         t|T)
             if [[ -d $themes_dir ]]; then
-
                 PS3=""$'\n'" Choose a theme: "
-                select name in $(find "$themes_dir" -type f | sort | sed 's,.*/,,'); do
-
+                select profile_name in $(find "$themes_dir" -type f -printf '%f\n' | sort); do
+                    [[ -f $profiles_dir/$profile_name ]] && \
+                    echo " $profile_name already exists, exiting.." && exit 1
                     _ifTypeIs
-
-    	            for key in "${!ThemeColors[@]}"; do
-
+                    for key in "${!ThemeColors[@]}"; do
                         colorname="${ThemeColors[${key}]}"
                         colorvalue=$(
                             awk -F'#' -v K="$key" '$0~K{print $3; exit}
-                            ' "$themes_dir"/"$name"
+                            ' "$themes_dir/$profile_name"
                         )
-
                         echo "$colorvalue"
                         sed -i "s/var ${colorname}/var ${colorname} ${colorvalue}/" \
-                        "$profiles_dir"/profile_"$name"
-
+                        "$profiles_dir/$profile_name"
                     done
-
-    	            break
-
+                    break
                 done
-
             else
                 echo " $themes_dir does not exist...exiting" && exit 1
             fi
         ;;
         x|X)
             if [[ -e $HOME/.Xresources ]]; then
-
-                read -rp ' Enter a profile name: ' name
-
+                read -rp ' Enter a profile name: ' profile_name
+                [[ -f $profile_name ]] && \
+                echo " $profile_name already exists, exiting.." && exit 1
                 _ifTypeIs
-
                 for x in "${XresourcesColors[@]}"; do
-
-                    colorvalue=$(xrdb -query | awk -F'#' -v X="$x" '$0~X{print $2; exit}')
+                    colorvalue=$(xrdb -query | awk -F'#' -v X="$x" '$0 ~ X { print $2; exit }')
                     echo "$colorvalue"
-                    sed -i "s/var ${x}/var ${x} ${colorvalue}/" profile_"$name"
-
+                    sed -i "s/var ${x}/var ${x} ${colorvalue}/" "$profile_name"
                 done
-                
             else
                 echo " $HOME/.Xresources does not exist...exiting" && exit 1
             fi
         ;;
-        *)
-            echo " Wrong option '$create'...exiting" && exit 1
-        ;;
+        *) echo " Wrong option '$create'...exiting" && exit 1 ;;
     esac
-
     _saveAs
 }
 
 _ifTypeIs() {
-
     if [[ $type =~ g|G ]]; then
-        cp "$groupSkell" "$profiles_dir"/profile_"$name"
-        sed -i "1s/^/# groups_$name\n/" profile_"$name"
-        clear
+        cp "$group_skel" "$profiles_dir/$profile_name"
+        sed -i "1s/^/# $profile_name\n/" "$profile_name"
     else
-        cp "$profileSkel" "$profiles_dir"/profile_"$name"
-        sed -i "1s/^/# profile_$name\n/" profile_"$name"
-        clear
+        cp "$profile_skel" "$profiles_dir/$profile_name"
+        sed -i "1s/^/# $profile_name\n/" "$profile_name"
     fi
-
+    clear
 }
 
 _saveAs() {
-
-    sudo mkdir -p "$etcProfiles"
-    sudo cp -f profile_"$name" "$etcProfiles"/profile_"$name"
-
-    read -rp " Apply $name? [Y/n]: "
+    sudo mkdir -p "$etc_profiles"
+    sudo cp -f "$profile_name" "$etc_profiles/$profile_name"
+    sudo chmod +r "$etc_profiles/$profile_name"
+    read -rp " Apply $profile_name? [Y/n]: "
     case "$REPLY" in
-        y|Y)
-            g810-led -pp < "$etcProfiles"/profile_"$name"
-            sudo sed -i "s/${profile}/profile_${name}/" "$rules"
-        ;;
-        n|N)
-            exit 0
-        ;;
-        *)
-            echo " wrong option $REPLY...exiting" && exit 1
-        ;;
+        [yY])
+            sudo "$myModelBinary" -pp < "$etc_profiles/$profile_name"
+            sudo cp -f "$etc_profiles/$profile_name" "$etc_confdir"/profile
+        ;; [nN]) exit 0 ;;
+        *) echo " wrong option $REPLY...exiting" && exit 1 ;;
     esac
-    
 }
 
 _main "${@}"

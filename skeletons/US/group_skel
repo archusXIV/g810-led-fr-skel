@@ -1,0 +1,41 @@
+### resources variables ###
+# color0=black color1=red color2=green color3=yellow
+# color4=blu color5=magenta color6=cyan color7=white
+
+var color0 000000
+var color1
+var color2
+var color3
+var color4
+var color5
+var color6
+var color7
+
+### k=keys & g=groups for american qwerty keyboard ###
+
+## gaming keys ( g1 g2 g3 g4 g5 ) black by default
+g gkeys $color0
+
+g logo $color3
+g indicators $color7
+k backlight $color6
+g multimedia $color2
+g fkeys $color5
+g modifiers $color1
+# (direction keys)
+g arrows $color3
+k home $color3
+k pageup $color3
+k end $color3
+k pagedown $color3
+k h $color3
+k j $color3
+k k $color3
+k l $color3
+g numeric $color4
+g functions $color6
+g keys $color4
+k backslash $color4 # { \ | }
+k capslock $color4
+
+c # Commit changes
