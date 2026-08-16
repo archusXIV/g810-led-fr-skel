@@ -44,7 +44,7 @@ declare -A ThemeColors=(
 cd "$profiles_dir" || exit 1
 
 _main() {
-    local profile_name type
+    local profile_name type colorvalue colorname
     read -rp " create a [G]roup or a [K]eys profile? " type
     read -rp " create [M]anually, from a [T]heme or from [X]resources: " create
     printf '\n'
@@ -56,13 +56,20 @@ _main() {
                 exit 1
             }
             _ifTypeIs
-            for m in "${XresourcesColors[@]}"; do
+            for colorname in "${XresourcesColors[@]}"; do
                 printf '\n'
-                printf '%s\n' " color1=red color2=green color3=yellow color4=blue " \
-                              " color5=magenta color6=cyan color7=white"
+                printf '%s\n' " ${G}color1=red color2=green color3=yellow color4=blue " \
+                              " color5=magenta color6=cyan color7=white${Z}"
                 printf '\n'
-                read -rp " Enter an hex color value for $m: " clr
-                sed -i "s/var ${m}/var ${m} ${clr}/" "$profile_name"
+                read -rp " ${G}Enter an hex color value for $colorname: ${Z}" colorvalue
+                [[ ! $colorvalue =~ ^[a-fA-F0-9]{6} ]] && {
+                    printf '%s\n' " ${R}Hex colors must be 6 digits/numbers!" \
+                    " 0 -> 9, a -> f: 88def2${Z}"
+                    rm "$profile_name" 2>/dev/null
+                    sleep 2
+                    exit 1
+                }
+                sed -i "s/var ${colorname}/var ${colorname} ${colorvalue}/" "$profile_name"
                 clear
             done
         ;;
