@@ -56,7 +56,7 @@ sudo make install
 git clone https://github.com/archusXIV/g810-led-fr-skel.git
 cd g810-led-fr-skel
 chmod +x ./install_profiles.sh && ./install_profiles.sh
-cp ./scripts/g810_{create,delete,switch}_profile "$HOME/.local/bin"
+cp ./scripts/{g810-led-menu,g810_{create,delete,switch}_profile} "$HOME/.local/bin"
 # ... if ~/.local/bin is in your $PATH
 ```
 - To use a specific layout template, copy the desired skeleton into the project root before generating a profile, or start from the matching file under [skeletons](skeletons).
@@ -71,6 +71,8 @@ lsusb | grep -i keyboard
     - key profiles also use groups but some keys have different colors than the group to which they belong.
     - A prompt will appear to let you choose between the two methods.
 
+- We can use each script independently or use the g810-led-menu script to launch a menu.
+[screenshot](https://github.com/archusXIV/g810-led-fr-skel/blob/main/screenshots/g810-led-menu.png)
 
 ```
 g810_create_profile

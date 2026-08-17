@@ -35,7 +35,7 @@ cp -f "$layout_dir"/group_skel "$XDG_CONFIG_HOME"/g810-led/group_skel
 cp -f ./profiles/* "$XDG_CONFIG_HOME"/g810-led/profiles/
 cp -f ./themes/* "$XDG_CONFIG_HOME"/g810-led/themes/
 
-chmod +x ./scripts/g810_{create,delete,switch}_profile
+chmod +x ./scripts/g810_{create,delete,switch}_profile g810-led-menu
 
 sudo cp -f ./g810-led.rules /etc/udev/rules.d/
 sudo mkdir -p /etc/g810-led/profiles

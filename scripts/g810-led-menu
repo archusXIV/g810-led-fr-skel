@@ -1,0 +1,336 @@
+#!/usr/bin/env bash
+
+# Author: Barret E <https://github.com/archusXIV>
+#
+# Supported keyboards: G213 G410 G413 G512 G513 G610 G810 G815 G910 Gpro
+# use lsusb | grep -i keyboard, to find out your model name & model id
+
+# shellcheck disable=SC2024
+myModelName=$(awk '/Keyboard/{print $9}' < <(lsusb))
+myModelBinary="${myModelName,}-led"
+G=$'\e[32m'
+R=$'\e[31m'
+Z=$'\e[0m'
+
+! grep -q "$myModelName" < <(lsusb) && {
+    [[ -z $(command -v "$myModelBinary") ]] && {
+        echo " ${R}No g810-led related binary found...exiting${Z}"
+        exit 127
+    }
+    echo " ${R}$myModelName is not plugged in, exiting...${Z}"
+    exit 1
+}
+
+etc_confdir="/etc/g810-led"
+etc_profiles="$etc_confdir/profiles"
+profile=$(sed -n '1s/# //p' "$etc_confdir"/profile)
+config_dir="$HOME/.config/g810-led"
+group_skel="$config_dir/group_skel"
+profiles_dir="$config_dir/profiles"
+profiles_num=("$profiles_dir"/*)
+profile_skel="$config_dir/profile_skel"
+themes_dir="$config_dir/themes"
+themes_num=("$themes_dir"/*)
+
+_menu() {
+    # resizing the terminal
+    echo -ne '\e[8;30;103t'
+    clear
+    while true; do
+        clear
+        echo -e "\n Number of themes:   ${G}${#themes_num[@]}${Z}"
+        echo -e " Number of profiles: ${G}${#profiles_num[@]}${Z}"
+        echo -e " Profile in use:     ${G}${profile}${Z}\n\n"
+        printf '%s\n' "${G}                                      ::g810-led-menu options::" \
+                        "                       ┌────────────────────────────────────────────────────┐" \
+                        "                       │  1) Create a profile  4) Edit keys profile skel    │" \
+                        "                       │  2) Delete a profile  5) Edit groups profile skel  │" \
+                        "                       │  3) Switch profile    6) Edit a theme              │" \
+                        "                       │  ${R}X) Exit${G}                                           │" \
+                        "                       └────────────────────────────────────────────────────┘" \
+                        "                                           Select an item${Z}"
+        printf '\n'
+
+        read -rsn 1 option
+        case "$option" in
+            1) _createProfile ;;
+            2) _deleteProfile ;;
+            3) _switchProfile ;;
+            4) _editFiles --keys ;;
+            5) _editFiles --groups ;;
+            6) _editFiles --theme ;;
+            [xX]) clear; exit ;;
+            *) continue ;;
+        esac
+    done
+}
+
+_cancel() {
+    case $REPLY in
+        [cC])
+            profile=$(sed -n '1s/# //p' "$etc_confdir"/profile)
+            _menu
+        ;;
+    esac
+}
+
+_editFiles() {
+
+    case $1 in
+        --groups) vim "$group_skel" ;;
+        --keys) vim "$profile_skel" ;;
+        --theme)
+            cd "$themes_dir" || exit 1
+            clear
+            printf '\n'
+            local profile_name
+            PS3=""$'\n'" ${G}Choose a RGB profile to edit or [C]ancel: ${Z}"
+            select profile_name in $(find . -type f -printf '%f\n' | sort); do
+                _cancel
+                vim "$themes_dir/$profile_name" && return
+            done
+        ;;
+    esac
+
+}
+
+# This function updates the logitech logo and the mute key in polybar
+# [module/ksp-ipc]
+# type = custom/ipc
+# hook-0 = echo "%{F$(xrdb -query | awk '/color4:/{print $NF}')}$(sed -n '1s/#//p' /etc/g810-led/profile) %{F-}"
+# initial = 1
+# format = <output>
+# format-prefix = "   "
+# format-prefix-foreground = ${colors.green}
+# format-padding = 1
+# click-left = urxvtc -name floaterm -geometry 60x12 -e g810_switch_profile & disown
+# _keyboardHook() {
+
+    # local GET_SINK_MUTE muteKeyOn
+    # GET_SINK_MUTE=$(pactl get-sink-mute "$(pactl get-default-sink)")
+    # muteKeyOn=$(awk '/^var color1/{print $NF}' "$etc_profiles"/"$profile")
+
+    # polybar-msg \
+        # -p "$(pgrep --full "$(awk '/Name/{print $2}' < <(wmctrl -m))"-bar-2)" \
+        # action "#ksp-ipc.hook.0" >/dev/null 2>&1
+
+    # [[ -s $XDG_RUNTIME_DIR/scratchpad_hidden.list ]] && \
+        # sudo "$myModelBinary" -fx breathing logo fb4934 5
+    # [[ ${GET_SINK_MUTE} == 'Mute: yes ' ]] && \
+        # sudo "$myModelBinary" -k mute "$muteKeyOn"
+
+# }
+
+_deleteProfile() {
+
+    cd "$etc_profiles" || exit 1
+    clear
+
+    echo -e "\n ${G}In use: $profile${Z}\n"
+    local profile_name
+    PS3=""$'\n'" ${G}Zhoose a RGB profile to delete or [C]ancel: ${Z}"
+    select profile_name in $(find . -type f -not -name "default" -printf '%f\n' | sort); do
+
+        _cancel
+        if [[ $profile_name == "$profile" ]]; then
+            # if you want to remove the profle in use...
+            sudo "$myModelBinary" -pp < default
+            sudo rm "$profile_name"
+            sudo cp -f "$profile_name" "$etc_profiles/$profile_name"
+            rm "$profiles_dir/$profile_name"
+            # we have to update the menu (the profile name).
+            profile="default"
+            echo " ${R}profile $profile_name deleted.${Z}"
+            sleep 2
+        else
+            sudo rm "$profile_name"
+            rm "$profiles_dir/$profile_name"
+            echo " ${R}profile $profile_name deleted.${Z}"
+            sleep 2
+        fi
+        break
+    done
+    # we have to update the menu (number of existing profles).
+    profiles_num=("$profiles_dir"/*)
+    # _keyboardHook
+    _menu
+
+}
+
+_ifProfileTypeIs() {
+
+    if [[ $profile_type =~ g|G ]]; then
+        cp "$group_skel" "$profiles_dir/$profile_name"
+        sed -i "1s/^/# $profile_name\n/" "$profile_name"
+    elif [[ $profile_type =~ k|K ]]; then
+        cp "$profile_skel" "$profiles_dir/$profile_name"
+        sed -i "1s/^/# $profile_name\n/" "$profile_name"
+    else
+        printf '%s\n' " ${R}Wrong option $profile_type.${Z}"
+        exit 1
+    fi
+    clear
+
+}
+
+_saveAs() {
+
+    sudo mkdir -p "$etc_profiles"
+    sudo cp -f "$profile_name" "$etc_profiles/$profile_name"
+    sudo chmod +r "$etc_profiles/$profile_name"
+
+    read -rp " ${G}Apply $profile_name? [Y/n]: ${Z}" save
+    case "$save" in
+        [yY])
+            sudo "$myModelBinary" -pp < "$etc_profiles/$profile_name"
+            sudo cp -f "$etc_profiles/$profile_name" "$etc_confdir"/profile
+            # _keyboardHook
+            profile="$profile_name"
+        ;;
+        [nN]) exit 0 ;;
+        *  ) echo " ${R}wrong option $save...exiting${Z}" && exit 1 ;;
+    esac
+
+    profiles_num=("$profiles_dir"/*)
+    _menu
+
+}
+
+_createProfile() {
+
+    cd "$profiles_dir" || exit 1
+    clear
+
+    declare -a XresourcesColors=(
+        color1 color2 color3 color4 color5 color6 color7
+    )
+
+    # ~/.config/g810-led/themes/<myTheme> [variables] names
+    declare -A ThemeColors=(
+        [red]="${XresourcesColors[0]}"
+        [grn]="${XresourcesColors[1]}"
+        [ylw]="${XresourcesColors[2]}"
+        [blu]="${XresourcesColors[3]}"
+        [mag]="${XresourcesColors[4]}"
+        [cyn]="${XresourcesColors[5]}"
+        [wht]="${XresourcesColors[6]}"
+    )
+
+    local profile_name profile_type create_from colorvalue colorname
+    echo
+    read -rp " create a [G]roup or a [K]eys profile? " profile_type
+    read -rp " create [M]anually, from a [T]heme or from [X]resources: " create_from
+    printf '\n'
+    case "$create_from" in
+        [mM])
+            read -rp " ${G}Enter a profile name: ${Z}" profile_name
+            [[ -f $profiles_dir/$profile_name ]] && {
+                echo " $profile_name already exists, exiting.."
+                exit 1
+            }
+            _ifProfileTypeIs
+            for colorname in "${XresourcesColors[@]}"; do
+                printf '\n'
+                printf '%s\n' " ${G}color1=red color2=green color3=yellow color4=blue " \
+                              " color5=magenta color6=cyan color7=white${Z}"
+                printf '\n'
+                read -rp " ${G}Enter an hex color value for $colorname: ${Z}" colorvalue
+                # testing the range and the number of hexadecimal colors.
+                [[ ! $colorvalue =~ ^[a-fA-F0-9]{6}$ ]] && {
+                    printf '%s\n' " ${R}Hex colors must be 6 digits/numbers!" \
+                    " 0 -> 9, a -> f: 88def2${Z}"
+                    rm "$profile_name" 2>/dev/null
+                    sleep 2
+                    exit 1
+                }
+                sed -i "s/var ${colorname}/var ${colorname} ${colorvalue}/" "$profile_name"
+                clear
+            done
+        ;;
+        [tT])
+            if [[ -d $themes_dir ]]; then
+
+                PS3=""$'\n'" ${G}Choose a theme or [C]ancel: ${Z}"
+                select profile_name in $(find "$themes_dir" -type f -printf '%f\n' | sort); do
+                    [[ -f $profiles_dir/$profile_name ]] && {
+                        echo " profile $profile_name already exists, exiting.."
+                        exit 1
+                    }
+                    _cancel
+                    _ifProfileTypeIs
+
+                    for key in "${!ThemeColors[@]}"; do
+                        colorname="${ThemeColors[${key}]}"
+                        colorvalue=$(
+                            awk -F'#' -v K="$key" '
+                                $0 ~ K { print $3; exit }
+                            ' "$themes_dir/$profile_name"
+                        )
+                        echo "$colorvalue"
+                        sed -i "s/var ${colorname}/var ${colorname} ${colorvalue}/" \
+                        "$profiles_dir/$profile_name"
+                    done
+                    break
+
+                done
+            else
+                echo " ${R}$themes_dir does not exist...exiting${Z}" && exit 1
+            fi
+        ;;
+        [xX])
+            if [[ -e $HOME/.Xresources ]]; then
+
+                read -rp " ${G}Enter a profile name: ${Z}" profile_name
+                [[ -f $profiles_dir/$profile_name ]] && {
+                    echo " $profile_name already exists, exiting..."
+                    exit 1
+                }
+                _ifProfileTypeIs
+
+                for colorname in "${XresourcesColors[@]}"; do
+                    colorvalue=$(
+                        xrdb -query | awk -F'#' -v X="$colorname" '$0 ~ X {print $2; exit}'
+                    )
+                    echo "$colorvalue"
+                    sed -i "s/var ${colorname}/var ${colorname} ${colorvalue}/" "$profile_name"
+                done
+
+            else
+                echo " ${R}$HOME/.Xresources does not exist...exiting${Z}" && exit 1
+            fi
+        ;;
+        *)
+            echo " ${R}Wrong option '$create_from'...exiting${Z}" && exit 1
+        ;;
+    esac
+
+    _saveAs
+
+}
+
+_switchProfile() {
+
+    cd "$profiles_dir" || exit 1
+    clear
+    echo -e "\n ${G}In use: $profile${Z}\n"
+
+    local profile_name
+    PS3=""$'\n'" ${G}Choose a RGB profile or [C]ancel: ${Z}"
+    select profile_name in $(find . -type f -printf '%f\n' | sort); do
+
+        _cancel
+        sudo "$myModelBinary" -pp < "$profile_name"
+        sudo cp -f "$etc_profiles/$profile_name" "$etc_confdir"/profile
+        echo " ${G}profile $profile_name selected.${Z}"
+        sleep 2
+        break
+
+    done
+
+    # _keyboardHook
+    profile="$profile_name"
+    _menu
+
+}
+
+_menu "${@}"
