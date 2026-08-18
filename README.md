@@ -5,9 +5,9 @@ This project originally targeted French AZERTY keyboards, and it now also includ
 
 Youtube [video](https://www.youtube.com/watch?v=sfBx5aLTEFM), french spoken.
 
-Profiles depend on a layout skeleton file such as [skeletons/FR/profile_skel](skeletons/FR/profile_skel) or [skeletons/US/profile_skel](skeletons/US/profile_skel), which you can edit before installation. The keys are organized by rows and grouped to match the underlying g810-led key mapping. The project keeps the same color assignment scheme across layouts; only the physical key names are remapped.
+Profiles depend on a layout skeleton file, which you can edit before installation. The keys are organized by rows and grouped to match the underlying g810-led key mapping. The project keeps the same color assignment scheme across layouts; only the physical key names are remapped.
 
-A matching group skeleton is also provided, such as [skeletons/FR/group_skel](skeletons/FR/group_skel) and [skeletons/US/group_skel](skeletons/US/group_skel).
+A matching group skeleton is also provided.
 
 ## Layout variants
 - French AZERTY: [skeletons/FR/profile_skel](skeletons/FR/profile_skel), [skeletons/FR/group_skel](skeletons/FR/group_skel)
