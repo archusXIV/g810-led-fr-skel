@@ -80,29 +80,31 @@ _cancel() {
 
 _editFiles() {
 
-    local profile_name
+    __editMenu() {
+        local profile_name
+        clear
+        printf '\n'
+        select profile_name in $(find . -type f -printf '%f\n' | sort); do
+            _cancel
+            vim "$profile_name"
+            break
+        done
+    }
+
     case $1 in
         groups) vim "$group_skel" ;;
         keys) vim "$profile_skel" ;;
         profile)
             cd "$profiles_dir" || exit 1
-            clear
             printf '\n'
             PS3=""$'\n'" ${G}Choose a RGB profile to edit or [C]ancel: ${Z}"
-            select profile_name in $(find . -type f -printf '%f\n' | sort); do
-                _cancel
-                vim "$profile_name"
-            done
+            __editMenu
         ;;
         theme)
             cd "$themes_dir" || exit 1
-            clear
             printf '\n'
             PS3=""$'\n'" ${G}Choose a theme to edit or [C]ancel: ${Z}"
-            select profile_name in $(find . -type f -printf '%f\n' | sort); do
-                _cancel
-                vim "$profile_name"
-            done
+            __editMenu
         ;;
     esac
 
