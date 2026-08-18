@@ -72,6 +72,7 @@ lsusb | grep -i keyboard
     - A prompt will appear to let you choose between the two methods.
 
 - We can use each script independently or use the g810-led-menu script to launch a menu.
+
 ![screenshot](https://github.com/archusXIV/g810-led-fr-skel/blob/main/screenshots/g810-led-menu.png)
 
 ```
