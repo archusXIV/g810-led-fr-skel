@@ -110,7 +110,8 @@ _editFiles() {
 
 }
 
-# This function updates the logitech logo and the mute key in polybar
+# Polybar module to display the profile in use and to switch between profiles, using the g810_switch_profile script.
+#
 # [module/ksp-ipc]
 # type = custom/ipc
 # hook-0 = echo "%{F$(xrdb -query | awk '/color4:/{print $NF}')}$(sed -n '1s/#//p' /etc/g810-led/profile) %{F-}"
@@ -119,7 +120,12 @@ _editFiles() {
 # format-prefix = "   "
 # format-prefix-foreground = ${colors.green}
 # format-padding = 1
+#
+# Edit the line below according to your terminal emulator,
+# to open a floating terminal with the g810_switch_profile script.
 # click-left = urxvtc -name floaterm -geometry 60x12 -e g810_switch_profile & disown
+#
+# This function updates the logitech logo and the mute key in polybar
 # _keyboardHook() {
 
 #     local GET_SINK_MUTE muteKeyOn
