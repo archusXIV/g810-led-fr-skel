@@ -46,10 +46,10 @@ _menu() {
                         "                       │  1) Create a profile  4) Edit keys profile skel    │" \
                         "                       │  2) Delete a profile  5) Edit groups profile skel  │" \
                         "                       │  3) Switch profile    6) Edit a theme              │" \
-                        "                       │  ${R}X) Exit${G}                                           │" \
+                        "                       │  ${R}X) Exit${G}              7) Edit a profile            │" \
                         "                       └────────────────────────────────────────────────────┘" \
-                        "                                           Select an item${Z}"
-        printf '\n'
+                        "                                           Select an item${Z}" \
+        ""
 
         read -rsn 1 option
         case "$option" in
@@ -59,6 +59,7 @@ _menu() {
             4) _editFiles keys ;;
             5) _editFiles groups ;;
             6) _editFiles theme ;;
+            7) _editFiles profile ;;
             [xX]) clear; exit ;;
             *) continue ;;
         esac
@@ -69,6 +70,9 @@ _cancel() {
     case $REPLY in
         [cC])
             profile=$(sed -n '1s/# //p' "$etc_confdir"/profile)
+            printf '%s\n' " ${R}Selection cancelled...${Z}"
+            rm "$profiles_dir"/{profile,group}_skel 2> /dev/null
+            sleep 2
             _menu
         ;;
     esac
@@ -76,18 +80,28 @@ _cancel() {
 
 _editFiles() {
 
+    local profile_name
     case $1 in
         groups) vim "$group_skel" ;;
         keys) vim "$profile_skel" ;;
+        profile)
+            cd "$profiles_dir" || exit 1
+            clear
+            printf '\n'
+            PS3=""$'\n'" ${G}Choose a RGB profile to edit or [C]ancel: ${Z}"
+            select profile_name in $(find . -type f -printf '%f\n' | sort); do
+                _cancel
+                vim "$profile_name"
+            done
+        ;;
         theme)
             cd "$themes_dir" || exit 1
             clear
             printf '\n'
-            local profile_name
-            PS3=""$'\n'" ${G}Choose a RGB profile to edit or [C]ancel: ${Z}"
+            PS3=""$'\n'" ${G}Choose a theme to edit or [C]ancel: ${Z}"
             select profile_name in $(find . -type f -printf '%f\n' | sort); do
                 _cancel
-                vim "$profile_name" && return
+                vim "$profile_name"
             done
         ;;
     esac
@@ -133,7 +147,7 @@ _deleteProfile() {
 
         _cancel
         if [[ $profile_name == "$profile" ]]; then
-            # if you want to remove the profle in use...
+            # if you want to remove the profile in use...
             sudo "$myModelBinary" -pp < default
             sudo rm "$profile_name"
             sudo cp -f "$etc_profiles/default" "$etc_confdir/profile"
@@ -150,7 +164,7 @@ _deleteProfile() {
         fi
         break
     done
-    # we have to update the menu (number of existing profles).
+    # we have to update the menu (number of existing profiles).
     profiles_num=("$profiles_dir"/*)
     # _keyboardHook
 
@@ -164,9 +178,14 @@ _ifProfileTypeIs() {
     elif [[ $profile_type =~ k|K ]]; then
         cp "$profile_skel" "$profiles_dir/$profile_name"
         sed -i "1s/^/# $profile_name\n/" "$profile_name"
+    elif [[ $profile_type =~ c|C ]]; then
+        printf '%s\n' " ${R}Selection cancelled..."
+        sleep 2
+        _menu
     else
         printf '%s\n' " ${R}Wrong option $profile_type.${Z}"
-        exit 1
+        sleep 2
+        _menu
     fi
     clear
 
@@ -178,19 +197,20 @@ _saveAs() {
     sudo cp -f "$profile_name" "$etc_profiles/$profile_name"
     sudo chmod +r "$etc_profiles/$profile_name"
 
-    read -rp " ${G}Apply $profile_name? [Y/n]: ${Z}" save
-    case "$save" in
+    read -rp " ${G}Apply $profile_name? [Y/n]: ${Z}" apply
+    case "$apply" in
         [yY])
             sudo "$myModelBinary" -pp < "$etc_profiles/$profile_name"
             sudo cp -f "$etc_profiles/$profile_name" "$etc_confdir"/profile
             # _keyboardHook
             profile="$profile_name"
+            profiles_num=("$profiles_dir"/*)
         ;;
-        [nN]) exit 0 ;;
-        *  ) echo " ${R}wrong option $save...exiting${Z}" && exit 1 ;;
+        *)
+            profiles_num=("$profiles_dir"/*)
+            _menu
+        ;;
     esac
-
-    profiles_num=("$profiles_dir"/*)
 
 }
 
@@ -216,8 +236,10 @@ _createProfile() {
 
     local profile_name profile_type create_from colorvalue colorname
     echo
-    read -rp " create a [G]roups or a [K]eys profile? " profile_type
-    read -rp " create [M]anually, from a [T]heme or from [X]resources: " create_from
+    read -rp " Create a [G]roups or a [K]eys profile, [C]ancel: " profile_type
+    _ifProfileTypeIs
+    echo
+    read -rp " Create [M]anually, from a [T]heme or from [X]resources: " create_from
     printf '\n'
     case "$create_from" in
         [mM])
@@ -226,20 +248,19 @@ _createProfile() {
                 echo " $profile_name already exists, exiting.."
                 exit 1
             }
-            _ifProfileTypeIs
             for colorname in "${XresourcesColors[@]}"; do
                 printf '\n'
                 printf '%s\n' " ${G}color1=red color2=green color3=yellow color4=blue " \
                               " color5=magenta color6=cyan color7=white${Z}"
                 printf '\n'
                 read -rp " ${G}Enter an hex color value for $colorname: ${Z}" colorvalue
-                # testing the range and the number of hexadecimal colors.
+                # testing the range and the number of characters for hexadecimal colors.
                 [[ ! $colorvalue =~ ^[a-fA-F0-9]{6}$ ]] && {
                     printf '%s\n' " ${R}Hex colors must be 6 digits/numbers!" \
                     " 0 -> 9, a -> f: 88def2${Z}"
                     rm "$profile_name" 2>/dev/null
                     sleep 2
-                    exit 1
+                    _menu
                 }
                 sed -i "s/var ${colorname}/var ${colorname} ${colorvalue}/" "$profile_name"
                 clear
@@ -255,7 +276,6 @@ _createProfile() {
                         exit 1
                     }
                     _cancel
-                    _ifProfileTypeIs
 
                     for key in "${!ThemeColors[@]}"; do
                         colorname="${ThemeColors[${key}]}"
@@ -283,7 +303,6 @@ _createProfile() {
                     echo " $profile_name already exists, exiting..."
                     exit 1
                 }
-                _ifProfileTypeIs
 
                 for colorname in "${XresourcesColors[@]}"; do
                     colorvalue=$(
