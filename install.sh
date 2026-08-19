@@ -6,9 +6,9 @@
 
 layout_dir=""
 while true; do
-    echo -e "\nChoose a keyboard layout:"
+    echo -e "\n Choose a keyboard layout:"
     echo -en "  1) French AZERTY\n  2) American QWERTY"
-    read -rp "Selection [1/2]: " layout_choice
+    read -rp " Selection [1/2]: " layout_choice
     case "$layout_choice" in
         1)
             layout_dir="$(dirname "$0")/skeletons/FR"
@@ -19,13 +19,14 @@ while true; do
             break
         ;;
         *)
-            echo "Invalid choice. Please enter 1 or 2."
+            echo " Invalid choice. Please enter 1 or 2."
+            sleep 2
         ;;
     esac
 done
 
 if [[ ! -d "$layout_dir" ]]; then
-    echo "Selected layout directory not found: $layout_dir"
+    echo " Selected layout directory not found: $layout_dir"
     exit 1
 fi
 
@@ -41,4 +42,4 @@ sudo cp -f ./g810-led.rules /etc/udev/rules.d/
 sudo mkdir -p /etc/g810-led/profiles
 sudo cp -f ./profiles/* /etc/g810-led/profiles/
 
-printf '\nInstalled layout skeletons for %s into %s\n' "$(basename "$layout_dir")" "$XDG_CONFIG_HOME/g810-led"
+printf '\n Installed layout skeletons for %s into %s\n' "$(basename "$layout_dir")" "$XDG_CONFIG_HOME/g810-led"

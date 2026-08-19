@@ -55,7 +55,7 @@ sudo make install
 ```
 git clone https://github.com/archusXIV/g810-led-fr-skel.git
 cd g810-led-fr-skel
-chmod +x ./install_profiles.sh && ./install_profiles.sh
+chmod +x ./install.sh && ./install.sh
 cp ./scripts/{g810-led-menu,g810_{create,delete,switch}_profile} "$HOME/.local/bin"
 # ... if ~/.local/bin is in your $PATH
 ```
