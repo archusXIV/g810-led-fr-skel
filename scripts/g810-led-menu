@@ -222,7 +222,7 @@ _saveAs() {
         [yY])
             sudo "$myModelBinary" -pp < "$etc_profiles/$profile_name"
             sudo cp -f "$etc_profiles/$profile_name" "$etc_confdir"/profile
-            _keyboardHook
+            # _keyboardHook
             profile="$profile_name"
             profiles_num=("$profiles_dir"/*)
         ;;
