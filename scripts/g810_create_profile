@@ -20,8 +20,8 @@ myModelBinary="${myModelName,}-led"
 
 config_dir="$HOME/.config/g810-led"
 profiles_dir="$config_dir/profiles"
-profile_skel="$config_dir/profile_skel"
-group_skel="$config_dir/group_skel"
+keys_skel="$config_dir/keys_skel"
+groups_skel="$config_dir/groups_skel"
 themes_dir="$config_dir/themes"
 etc_confdir="/etc/g810-led"
 etc_profiles="/etc/g810-led/profiles"
@@ -118,10 +118,10 @@ _main() {
 
 _ifTypeIs() {
     if [[ $type =~ g|G ]]; then
-        cp "$group_skel" "$profiles_dir/$profile_name"
+        cp "$groups_skel" "$profiles_dir/$profile_name"
         sed -i "1s/^/# $profile_name\n/" "$profile_name"
     else
-        cp "$profile_skel" "$profiles_dir/$profile_name"
+        cp "$keys_skel" "$profiles_dir/$profile_name"
         sed -i "1s/^/# $profile_name\n/" "$profile_name"
     fi
     clear

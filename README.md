@@ -10,8 +10,8 @@ Profiles depend on a layout skeleton file, which you can edit before installatio
 A matching group skeleton is also provided.
 
 ## Layout variants
-- French AZERTY: [skeletons/FR/profile_skel](skeletons/FR/profile_skel), [skeletons/FR/group_skel](skeletons/FR/group_skel)
-- US QWERTY: [skeletons/US/profile_skel](skeletons/US/profile_skel), [skeletons/US/group_skel](skeletons/US/group_skel)
+- French AZERTY: [skeletons/FR/keys_skel](skeletons/FR/keys_skel), [skeletons/FR/groups_skel](skeletons/FR/groups_skel)
+- US QWERTY: [skeletons/US/keys_skel](skeletons/US/keys_skel), [skeletons/US/groups_skel](skeletons/US/groups_skel)
 
 The generated profiles live under [profiles](profiles) and can be customized with your own palette values.
 
@@ -71,9 +71,11 @@ lsusb | grep -i keyboard
     - key profiles also use groups but some keys have different colors than the group to which they belong.
     - A prompt will appear to let you choose between the two methods.
 
-- We can use each script independently or use the g810-led-menu script to launch a menu.
+- Use the g810-led-menu script to launch a menu.
 
 ![screenshot](https://github.com/archusXIV/g810-led-fr-skel/blob/main/screenshots/g810-led-menu.png)
+
+Or use the command line directly to create, switch or delete profiles.
 
 ```
 g810_create_profile

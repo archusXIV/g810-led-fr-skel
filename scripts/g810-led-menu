@@ -2,7 +2,10 @@
 
 # Author: Barret E <https://github.com/archusXIV>
 #
+# This script let us create, delete, switch between RGB profiles
+# designed to be use with our Logitech compatible keyboard.
 # Supported keyboards: G213 G410 G413 G512 G513 G610 G810 G815 G910 Gpro
+# Themes, profiles and "skeletons" can be edited through the menu too.
 # use lsusb | grep -i keyboard, to find out your model name & model id
 
 # shellcheck disable=SC2024
@@ -14,10 +17,10 @@ Z=$'\e[0m'
 
 ! grep -q "$myModelName" < <(lsusb) && {
     [[ -z $(command -v "$myModelBinary") ]] && {
-        echo " ${R}No g810-led related binary found...exiting${Z}"
+        printf '%s\n' " ${R}No g810-led related binary found...exiting${Z}"
         exit 127
     }
-    echo " ${R}$myModelName is not plugged in, exiting...${Z}"
+    printf '%s\n' " ${R}$myModelName is not plugged in, exiting...${Z}"
     exit 1
 }
 
@@ -25,12 +28,12 @@ etc_confdir="/etc/g810-led"
 etc_profiles="$etc_confdir/profiles"
 profile=$(sed -n '1s/# //p' "$etc_confdir"/profile)
 config_dir="$HOME/.config/g810-led"
-group_skel="$config_dir/group_skel"
+groups_skel="$config_dir/groups_skel"
 profiles_dir="$config_dir/profiles"
-profile_skel="$config_dir/profile_skel"
+keys_skel="$config_dir/keys_skel"
 themes_dir="$config_dir/themes"
-profiles_num=("$profiles_dir"/*)
 themes_num=("$themes_dir"/*)
+profiles_num=("$profiles_dir"/*)
 
 _menu() {
     # resizing the terminal
@@ -66,6 +69,8 @@ _menu() {
     done
 }
 
+blank_line() { printf '\n'; }
+
 _cancel() {
     case $REPLY in
         [cC])
@@ -83,7 +88,7 @@ _editFiles() {
     __editMenu() {
         local profile_name
         clear
-        printf '\n'
+        blank_line
         select profile_name in $(find . -type f -printf '%f\n' | sort); do
             _cancel
             vim "$profile_name"
@@ -92,17 +97,17 @@ _editFiles() {
     }
 
     case $1 in
-        groups) vim "$group_skel" ;;
-        keys) vim "$profile_skel" ;;
+        groups) vim "$groups_skel" ;;
+        keys) vim "$keys_skel" ;;
         profile)
             cd "$profiles_dir" || exit 1
-            printf '\n'
+            blank_line
             PS3=""$'\n'" ${G}Choose a RGB profile to edit or [C]ancel: ${Z}"
             __editMenu
         ;;
         theme)
             cd "$themes_dir" || exit 1
-            printf '\n'
+            blank_line
             PS3=""$'\n'" ${G}Choose a theme to edit or [C]ancel: ${Z}"
             __editMenu
         ;;
@@ -110,7 +115,8 @@ _editFiles() {
 
 }
 
-# Polybar module to display the profile in use and to switch between profiles, using the g810_switch_profile script.
+# Polybar module to display the profile in use and to switch between profiles,
+# using the g810_switch_profile script.
 #
 # [module/ksp-ipc]
 # type = custom/ipc
@@ -128,8 +134,8 @@ _editFiles() {
 # This function updates the logitech logo and the mute key in polybar
 # _keyboardHook() {
 
-#     local GET_SINK_MUTE muteKeyOn
-#     GET_SINK_MUTE=$(pactl get-sink-mute "$(pactl get-default-sink)")
+#     local get_sink_mute muteKeyOn
+#     get_sink_mute=$(pactl get-sink-mute "$(pactl get-default-sink)")
 #     muteKeyOn=$(awk '/^var color1/{print $NF}' "$etc_profiles"/"$profile")
 
 #     polybar-msg \
@@ -138,7 +144,7 @@ _editFiles() {
 
 #     [[ -s $XDG_RUNTIME_DIR/scratchpad_hidden.list ]] && \
 #         sudo "$myModelBinary" -fx breathing logo fb4934 5
-#     [[ ${GET_SINK_MUTE} == 'Mute: yes ' ]] && \
+#     [[ ${get_sink_mute} == 'Mute: yes ' ]] && \
 #         sudo "$myModelBinary" -k mute "$muteKeyOn"
 
 # }
@@ -162,12 +168,12 @@ _deleteProfile() {
             rm "$profiles_dir/$profile_name"
             # we have to update the menu (the profile name).
             profile="default"
-            echo " ${R}profile $profile_name deleted.${Z}"
+            printf '%s\n' " ${R}profile $profile_name deleted.${Z}"
             sleep 2
         else
             sudo rm "$profile_name"
             rm "$profiles_dir/$profile_name"
-            echo " ${R}profile $profile_name deleted.${Z}"
+            printf '%s\n' " ${R}profile $profile_name deleted.${Z}"
             sleep 2
         fi
         break
@@ -180,21 +186,27 @@ _deleteProfile() {
 
 _ifProfileTypeIs() {
 
-    if [[ $profile_type =~ g|G ]]; then
-        cp "$group_skel" "$profiles_dir/$profile_name"
-        sed -i "1s/^/# $profile_name\n/" "$profile_name"
-    elif [[ $profile_type =~ k|K ]]; then
-        cp "$profile_skel" "$profiles_dir/$profile_name"
-        sed -i "1s/^/# $profile_name\n/" "$profile_name"
-    elif [[ $profile_type =~ c|C ]]; then
-        printf '%s\n' " ${R}Selection cancelled..."
-        sleep 2
-        _menu
-    else
-        printf '%s\n' " ${R}Wrong option $profile_type.${Z}"
-        sleep 2
-        _menu
-    fi
+    case "${profile_type}" in
+        [gG])
+            cp "$groups_skel" "$profiles_dir/$profile_name"
+            sed -i "1s/^/# $profile_name\n/" "$profile_name"
+        ;;
+        [kK])
+            cp "$keys_skel" "$profiles_dir/$profile_name"
+            sed -i "1s/^/# $profile_name\n/" "$profile_name"
+        ;;
+        [cC])
+            printf '%s\n' " ${R}Selection cancelled...${Z}"
+            sleep 2
+            _menu
+        ;;
+        *)
+            printf '%s\n' " ${R}Wrong option $profile_type.${Z}"
+            sleep 2
+            _menu
+        ;;
+    esac
+
     clear
 
 }
@@ -210,7 +222,7 @@ _saveAs() {
         [yY])
             sudo "$myModelBinary" -pp < "$etc_profiles/$profile_name"
             sudo cp -f "$etc_profiles/$profile_name" "$etc_confdir"/profile
-            # _keyboardHook
+            _keyboardHook
             profile="$profile_name"
             profiles_num=("$profiles_dir"/*)
         ;;
@@ -243,24 +255,25 @@ _createProfile() {
     )
 
     local profile_name profile_type create_from colorvalue colorname
-    echo
-    read -rp " Create a [G]roups or a [K]eys profile, [C]ancel: " profile_type
+    blank_line
+    read -rp " ${G}Create a [G]roups or a [K]eys profile, [C]ancel: ${Z}" profile_type
     _ifProfileTypeIs
-    echo
-    read -rp " Create [M]anually, from a [T]heme or from [X]resources: " create_from
-    printf '\n'
+    blank_line
+    read -rp " ${G}Create [M]anually, from a [T]heme or from [X]resources: ${Z}" create_from
+    blank_line
+
     case "$create_from" in
         [mM])
             read -rp " ${G}Enter a profile name: ${Z}" profile_name
             [[ -f $profiles_dir/$profile_name ]] && {
-                echo " $profile_name already exists, exiting.."
+                printf '%s\n' " $profile_name already exists, exiting.."
                 exit 1
             }
             for colorname in "${XresourcesColors[@]}"; do
-                printf '\n'
+                blank_line
                 printf '%s\n' " ${G}color1=red color2=green color3=yellow color4=blue " \
-                              " color5=magenta color6=cyan color7=white${Z}"
-                printf '\n'
+                              " color5=magenta color6=cyan color7=white${Z}" \
+                ""
                 read -rp " ${G}Enter an hex color value for $colorname: ${Z}" colorvalue
                 # testing the range and the number of characters for hexadecimal colors.
                 [[ ! $colorvalue =~ ^[a-fA-F0-9]{6}$ ]] && {
@@ -280,7 +293,7 @@ _createProfile() {
                 PS3=""$'\n'" ${G}Choose a theme or [C]ancel: ${Z}"
                 select profile_name in $(find "$themes_dir" -type f -printf '%f\n' | sort); do
                     [[ -f $profiles_dir/$profile_name ]] && {
-                        echo " profile $profile_name already exists, exiting.."
+                        printf '%s\n' " ${R}profile $profile_name already exists, exiting...${Z}"
                         exit 1
                     }
                     _cancel
@@ -292,7 +305,7 @@ _createProfile() {
                                 $0 ~ K { print $3; exit }
                             ' "$themes_dir/$profile_name"
                         )
-                        echo "$colorvalue"
+                        printf '%s\n' "$colorvalue"
                         sed -i "s/var ${colorname}/var ${colorname} ${colorvalue}/" \
                         "$profiles_dir/$profile_name"
                     done
@@ -300,7 +313,7 @@ _createProfile() {
 
                 done
             else
-                echo " ${R}$themes_dir does not exist...exiting${Z}" && exit 1
+                printf '%s\n' " ${R}$themes_dir does not exist...exiting${Z}" && exit 1
             fi
         ;;
         [xX])
@@ -308,24 +321,24 @@ _createProfile() {
 
                 read -rp " ${G}Enter a profile name: ${Z}" profile_name
                 [[ -f $profiles_dir/$profile_name ]] && {
-                    echo " $profile_name already exists, exiting..."
+                    printf '%s\n' " ${R}$profile_name already exists, exiting...${Z}"
                     exit 1
                 }
 
                 for colorname in "${XresourcesColors[@]}"; do
                     colorvalue=$(
-                        xrdb -query | awk -F'#' -v X="$colorname" '$0 ~ X {print $2; exit}'
+                        xrdb -query | awk -F'#' -v X="$colorname" '$0 ~ X { print $2; exit }'
                     )
-                    echo "$colorvalue"
+                    printf '%s\n' "$colorvalue"
                     sed -i "s/var ${colorname}/var ${colorname} ${colorvalue}/" "$profile_name"
                 done
 
             else
-                echo " ${R}$HOME/.Xresources does not exist...exiting${Z}" && exit 1
+                printf '%s\n' " ${R}$HOME/.Xresources does not exist...exiting${Z}" && exit 1
             fi
         ;;
         *)
-            echo " ${R}Wrong option '$create_from'...exiting${Z}" && exit 1
+            printf '%s\n' " ${R}Wrong option '$create_from'...exiting${Z}" && exit 1
         ;;
     esac
 
@@ -346,7 +359,7 @@ _switchProfile() {
         _cancel
         sudo "$myModelBinary" -pp < "$profile_name"
         sudo cp -f "$etc_profiles/$profile_name" "$etc_confdir"/profile
-        echo " ${G}profile $profile_name selected.${Z}"
+        printf '%s\n' " ${G}profile $profile_name selected.${Z}"
         sleep 2
         break
 

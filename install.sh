@@ -31,8 +31,8 @@ if [[ ! -d "$layout_dir" ]]; then
 fi
 
 mkdir -p "$XDG_CONFIG_HOME"/g810-led/{profiles,themes}
-cp -f "$layout_dir"/profile_skel "$XDG_CONFIG_HOME"/g810-led/profile_skel
-cp -f "$layout_dir"/group_skel "$XDG_CONFIG_HOME"/g810-led/group_skel
+cp -f "$layout_dir"/keys_skel "$XDG_CONFIG_HOME"/g810-led/keys_skel
+cp -f "$layout_dir"/groups_skel "$XDG_CONFIG_HOME"/g810-led/groups_skel
 cp -f ./profiles/* "$XDG_CONFIG_HOME"/g810-led/profiles/
 cp -f ./themes/* "$XDG_CONFIG_HOME"/g810-led/themes/
 
