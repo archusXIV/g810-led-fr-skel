@@ -14,7 +14,7 @@ myModelBinary="${myModelName,}-led"
         echo " No g810-led related binary found...exiting"
         exit 127
     }
-    echo "$myModelName is not plugged in, exiting..."
+    echo "Keyboard $myModelName is not plugged in, exiting..."
     exit 1
 }
 

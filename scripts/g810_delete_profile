@@ -11,10 +11,10 @@ myModelBinary="${myModelName,}-led"
 
 ! grep -q "$myModelName" < <(lsusb) && {
     [[ -z $(command -v "$myModelBinary") ]] && {
-        echo " No g810-led related binary found...exiting"
+        printf '%s\n' " No g810-led related binary found...exiting"
         exit 127
     }
-    echo "$myModelName is not plugged in, exiting..."
+    printf '%s\n' "$myModelName is not plugged in, exiting..."
     exit 1
 }
 
@@ -24,17 +24,17 @@ profile=$(sed -n '1s/# //p' "$etc_confdir"/profile)
 cd "$etc_confdir/profiles" || exit 1
 
 if [[ $1 = default ]]; then
-    echo "You cannot delete default profile..." && exit 1
+    printf '%s\n' "You cannot delete default profile..." && exit 1
 elif [[ $1 = "$profile" ]]; then
     profile_name="$1"
     sudo "$myModelBinary" -pp < default
     sudo cp -f default "$etc_confdir"/profile
     sudo rm "$profile_name"
     rm "$config_profiles/$profile_name"
-    echo " profile $1 deleted."
+    printf '%s\n' " profile $1 deleted."
 elif [[ $1 != "$profile" ]]; then
-    [[ -z $1 ]] && echo -e " no argument given...\n" || \
-    echo -e " $1 does not exist.\n"
+    [[ -z $1 ]] && printf '%s\n' " no argument given..." || \
+    printf '%s\n' " $1 does not exist."
     printf '\n'
     PS3=""$'\n'" Choose a RGB profile to delete: "
     select profile_name in $(find . -type f -not -name "default" -printf '%f\n' | sort); do
@@ -43,11 +43,11 @@ elif [[ $1 != "$profile" ]]; then
             sudo cp -f default "$etc_confdir"/profile
             sudo rm "$profile_name"
             rm "$config_profiles/$profile_name"
-            echo " profile $profile_name deleted."
+            printf '%s\n' " profile $profile_name deleted."
         else
             sudo rm "$profile_name"
             rm "$config_profiles/$profile_name"
-            echo " profile $profile_name deleted."
+            printf '%s\n' " profile $profile_name deleted."
         fi
         break
     done

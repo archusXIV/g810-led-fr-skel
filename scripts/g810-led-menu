@@ -9,6 +9,7 @@
 # use lsusb | grep -i keyboard, to find out your model name & model id
 
 # shellcheck disable=SC2024
+
 myModelName=$(awk '/Keyboard/{print $9}' < <(lsusb))
 myModelBinary="${myModelName,}-led"
 G=$'\e[32m'
@@ -20,7 +21,7 @@ Z=$'\e[0m'
         printf '%s\n' " ${R}No g810-led related binary found...exiting${Z}"
         exit 127
     }
-    printf '%s\n' " ${R}$myModelName is not plugged in, exiting...${Z}"
+    printf '%s\n' " ${R}Keyboard $myModelName is not plugged in, exiting...${Z}"
     exit 1
 }
 
@@ -35,7 +36,7 @@ themes_dir="$config_dir/themes"
 themes_num=("$themes_dir"/*)
 profiles_num=("$profiles_dir"/*)
 
-_menu() {
+_mainMenu() {
     # resizing the terminal
     echo -ne '\e[8;30;103t'
     clear
@@ -69,16 +70,16 @@ _menu() {
     done
 }
 
-blank_line() { printf '\n'; }
+blankLine() { printf '\n'; }
 
 _cancel() {
     case $REPLY in
         [cC])
             profile=$(sed -n '1s/# //p' "$etc_confdir"/profile)
             printf '%s\n' " ${R}Selection cancelled...${Z}"
-            rm "$profiles_dir"/{profile,group}_skel 2> /dev/null
+            rm "$profiles_dir"/{keys,group}_skel 2> /dev/null
             sleep 2
-            _menu
+            _mainMenu
         ;;
     esac
 }
@@ -88,7 +89,7 @@ _editFiles() {
     __editMenu() {
         local profile_name
         clear
-        blank_line
+        blankLine
         select profile_name in $(find . -type f -printf '%f\n' | sort); do
             _cancel
             vim "$profile_name"
@@ -101,53 +102,19 @@ _editFiles() {
         keys) vim "$keys_skel" ;;
         profile)
             cd "$profiles_dir" || exit 1
-            blank_line
+            blankLine
             PS3=""$'\n'" ${G}Choose a RGB profile to edit or [C]ancel: ${Z}"
             __editMenu
         ;;
         theme)
             cd "$themes_dir" || exit 1
-            blank_line
+            blankLine
             PS3=""$'\n'" ${G}Choose a theme to edit or [C]ancel: ${Z}"
             __editMenu
         ;;
     esac
 
 }
-
-# Polybar module to display the profile in use and to switch between profiles,
-# using the g810_switch_profile script.
-#
-# [module/ksp-ipc]
-# type = custom/ipc
-# hook-0 = echo "%{F$(xrdb -query | awk '/color4:/{print $NF}')}$(sed -n '1s/#//p' /etc/g810-led/profile) %{F-}"
-# initial = 1
-# format = <output>
-# format-prefix = "   "
-# format-prefix-foreground = ${colors.green}
-# format-padding = 1
-#
-# Edit the line below according to your terminal emulator,
-# to open a floating terminal with the g810_switch_profile script.
-# click-left = urxvtc -name floaterm -geometry 60x12 -e g810_switch_profile & disown
-#
-# This function updates the logitech logo and the mute key in polybar
-# _keyboardHook() {
-
-#     local get_sink_mute muteKeyOn
-#     get_sink_mute=$(pactl get-sink-mute "$(pactl get-default-sink)")
-#     muteKeyOn=$(awk '/^var color1/{print $NF}' "$etc_profiles"/"$profile")
-
-#     polybar-msg \
-#         -p "$(pgrep --full "$(awk '/Name/{print $2}' < <(wmctrl -m))"-bar-2)" \
-#         action "#ksp-ipc.hook.0" >/dev/null 2>&1
-
-#     [[ -s $XDG_RUNTIME_DIR/scratchpad_hidden.list ]] && \
-#         sudo "$myModelBinary" -fx breathing logo fb4934 5
-#     [[ ${get_sink_mute} == 'Mute: yes ' ]] && \
-#         sudo "$myModelBinary" -k mute "$muteKeyOn"
-
-# }
 
 _deleteProfile() {
 
@@ -180,7 +147,6 @@ _deleteProfile() {
     done
     # we have to update the menu (number of existing profiles).
     profiles_num=("$profiles_dir"/*)
-    # _keyboardHook
 
 }
 
@@ -198,12 +164,12 @@ _ifProfileTypeIs() {
         [cC])
             printf '%s\n' " ${R}Selection cancelled...${Z}"
             sleep 2
-            _menu
+            _mainMenu
         ;;
         *)
             printf '%s\n' " ${R}Wrong option $profile_type.${Z}"
             sleep 2
-            _menu
+            _mainMenu
         ;;
     esac
 
@@ -222,13 +188,12 @@ _saveAs() {
         [yY])
             sudo "$myModelBinary" -pp < "$etc_profiles/$profile_name"
             sudo cp -f "$etc_profiles/$profile_name" "$etc_confdir"/profile
-            # _keyboardHook
             profile="$profile_name"
             profiles_num=("$profiles_dir"/*)
         ;;
         *)
             profiles_num=("$profiles_dir"/*)
-            _menu
+            _mainMenu
         ;;
     esac
 
@@ -255,12 +220,12 @@ _createProfile() {
     )
 
     local profile_name profile_type create_from colorvalue colorname
-    blank_line
+    blankLine
     read -rp " ${G}Create a [G]roups or a [K]eys profile, [C]ancel: ${Z}" profile_type
     _ifProfileTypeIs
-    blank_line
+    blankLine
     read -rp " ${G}Create [M]anually, from a [T]heme or from [X]resources: ${Z}" create_from
-    blank_line
+    blankLine
 
     case "$create_from" in
         [mM])
@@ -270,7 +235,7 @@ _createProfile() {
                 exit 1
             }
             for colorname in "${XresourcesColors[@]}"; do
-                blank_line
+                blankLine
                 printf '%s\n' " ${G}color1=red color2=green color3=yellow color4=blue " \
                               " color5=magenta color6=cyan color7=white${Z}" \
                 ""
@@ -280,8 +245,8 @@ _createProfile() {
                     printf '%s\n' " ${R}Hex colors must be 6 digits/numbers!" \
                     " 0 -> 9, a -> f: 88def2${Z}"
                     rm "$profile_name" 2>/dev/null
-                    sleep 2
-                    _menu
+                    sleep 4
+                    _mainMenu
                 }
                 sed -i "s/var ${colorname}/var ${colorname} ${colorvalue}/" "$profile_name"
                 clear
@@ -293,8 +258,10 @@ _createProfile() {
                 PS3=""$'\n'" ${G}Choose a theme or [C]ancel: ${Z}"
                 select profile_name in $(find "$themes_dir" -type f -printf '%f\n' | sort); do
                     [[ -f $profiles_dir/$profile_name ]] && {
-                        printf '%s\n' " ${R}profile $profile_name already exists, exiting...${Z}"
-                        exit 1
+                        printf '%s\n' " ${R}profile $profile_name already exists, try again...${Z}"
+                        sleep 2
+                        clear
+                        _mainMenu
                     }
                     _cancel
 
@@ -321,8 +288,9 @@ _createProfile() {
 
                 read -rp " ${G}Enter a profile name: ${Z}" profile_name
                 [[ -f $profiles_dir/$profile_name ]] && {
-                    printf '%s\n' " ${R}$profile_name already exists, exiting...${Z}"
-                    exit 1
+                    printf '%s\n' " ${R}$profile_name already exists, try again...${Z}"
+                    sleep 2
+                    _mainMenu
                 }
 
                 for colorname in "${XresourcesColors[@]}"; do
@@ -365,9 +333,8 @@ _switchProfile() {
 
     done
 
-    # _keyboardHook
     profile="$profile_name"
 
 }
 
-_menu "${@}"
+_mainMenu "${@}"
