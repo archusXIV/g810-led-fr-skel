@@ -127,7 +127,7 @@ _deleteProfile() {
     select profile_name in $(find . -type f -not -name "default" -printf '%f\n' | sort); do
         _cancel
         if [[ $profile_name == "$profile" ]]; then
-            # if you want to remove the profile in use...
+            # if we want to remove the profile in use...
             # the default profile will be applied.
             sudo "$myModelBinary" -pp < default
             sudo rm "$profile_name"
@@ -177,6 +177,18 @@ _ifProfileTypeIs() {
 
 }
 
+_ifProfileNameAlreadyExist() {
+
+    read -rp " ${G}Enter a profile name: ${Z}" profile_name
+    [[ -f $profile_name ]] && {
+        printf '%s\n' " ${R}profile $profile_name already exists, try again...${Z}"
+        sleep 2
+        clear
+        _mainMenu
+    }
+
+}
+
 _saveAs() {
 
     sudo mkdir -p "$etc_profiles"
@@ -221,15 +233,6 @@ _createProfile() {
 
     local profile_name profile_type create_from colorvalue colorname
 
-    __ifProfileNameAlreadyExist() {
-        [[ -f $profiles_dir/$profile_name ]] && {
-            printf '%s\n' " ${R}profile $profile_name already exists, try again...${Z}"
-            sleep 2
-            clear
-            _mainMenu
-        }
-    }
-
     blankLine
     read -rp " ${G}Create a [G]roups or a [K]eys profile, [C]ancel: ${Z}" profile_type
     read -rp " ${G}Create [M]anually, from a [T]heme or from [X]resources: ${Z}" create_from
@@ -237,14 +240,16 @@ _createProfile() {
 
     case "$create_from" in
         [mM])
-            read -rp " ${G}Enter a profile name: ${Z}" profile_name
-            __ifProfileNameAlreadyExist
+            _ifProfileNameAlreadyExist
             _ifProfileTypeIs
+
             for colorname in "${XresourcesColors[@]}"; do
+
                 blankLine
                 printf '%s\n' " ${G}color1=red color2=green color3=yellow color4=blue " \
                               " color5=magenta color6=cyan color7=white${Z}" \
                 ""
+
                 read -rp " ${G}Enter an hex color value for $colorname: ${Z}" colorvalue
                 # testing the range and the number of characters for hexadecimal colors.
                 [[ ! $colorvalue =~ ^[a-fA-F0-9]{6}$ ]] && {
@@ -254,16 +259,20 @@ _createProfile() {
                     sleep 4
                     _mainMenu
                 }
+
                 sed -i "s/var ${colorname}/var ${colorname} ${colorvalue}/" "$profile_name"
                 clear
+
             done
         ;;
         [tT])
             if [[ -d $themes_dir ]]; then
                 PS3=""$'\n'" ${G}Choose an existing theme or [C]ancel: ${Z}"
                 select profile_name in $(find "$themes_dir" -type f -printf '%f\n' | sort); do
+
                     _cancel
                     _ifProfileTypeIs
+
                     for key in "${!ThemeColors[@]}"; do
                         colorname="${ThemeColors[${key}]}"
                         colorvalue=$(
@@ -276,6 +285,7 @@ _createProfile() {
                         "$profile_name"
                     done
                     break
+
                 done
             else
                 printf '%s\n' " ${R}$themes_dir does not exist...exiting${Z}"
@@ -286,8 +296,7 @@ _createProfile() {
         ;;
         [xX])
             if [[ -e $HOME/.Xresources ]]; then
-                read -rp " ${G}Enter a profile name: ${Z}" profile_name
-                __ifProfileNameAlreadyExist
+                _ifProfileNameAlreadyExist
                 _ifProfileTypeIs
                 for colorname in "${XresourcesColors[@]}"; do
                     colorvalue=$(
@@ -297,7 +306,7 @@ _createProfile() {
                     sed -i "s/var ${colorname}/var ${colorname} ${colorvalue}/" "$profile_name"
                 done
             else
-                printf '%s\n' " ${R}$HOME/.Xresources does not exist...exiting${Z}"
+                printf '%s\n' " ${R}$HOME/.Xresources does not exist...exiting!${Z}"
                 rm {groups,keys}_skel 2>/dev/null
                 exit 1
             fi
