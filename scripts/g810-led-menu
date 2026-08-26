@@ -9,20 +9,23 @@
 # use lsusb | grep -i keyboard, to find out your model name & model id
 
 # shellcheck disable=SC2024
-
-myModelName=$(awk '/Keyboard/{print $9}' < <(lsusb))
-myModelBinary="${myModelName,}-led"
 G=$'\e[32m'
 R=$'\e[31m'
 Z=$'\e[0m'
+
+[[ ! $(awk '/Keyboard/{print $7}' < <(lsusb)) =~ ^Logitech,$ ]] && {
+    printf '%s\n' " ${R}Keyboard $myModelName is not plugged in, exiting...${Z}"
+    exit 1
+}
+
+myModelName=$(awk '/Keyboard/{print $9}' < <(lsusb))
+myModelBinary="${myModelName,}-led"
 
 ! grep -q "$myModelName" < <(lsusb) && {
     [[ -z $(command -v "$myModelBinary") ]] && {
         printf '%s\n' " ${R}No g810-led related binary found...exiting${Z}"
         exit 127
     }
-    printf '%s\n' " ${R}Keyboard $myModelName is not plugged in, exiting...${Z}"
-    exit 1
 }
 
 etc_confdir="/etc/g810-led"
@@ -77,7 +80,7 @@ _cancel() {
         [cC])
             profile=$(sed -n '1s/# //p' "$etc_confdir"/profile)
             printf '%s\n' " ${R}Selection cancelled...${Z}"
-            rm "$profiles_dir"/{keys,group}_skel 2> /dev/null
+            rm "$profiles_dir"/{keys,groups}_skel 2> /dev/null
             sleep 2
             _mainMenu
         ;;
@@ -235,13 +238,13 @@ _createProfile() {
 
     blankLine
     read -rp " ${G}Create a [G]roups or a [K]eys profile, [C]ancel: ${Z}" profile_type
+    _ifProfileTypeIs
     read -rp " ${G}Create [M]anually, from a [T]heme or from [X]resources: ${Z}" create_from
     blankLine
 
     case "$create_from" in
         [mM])
             _ifProfileNameAlreadyExist
-            _ifProfileTypeIs
 
             for colorname in "${XresourcesColors[@]}"; do
 
@@ -253,7 +256,7 @@ _createProfile() {
                 read -rp " ${G}Enter an hex color value for $colorname: ${Z}" colorvalue
                 # testing the range and the number of characters for hexadecimal colors.
                 [[ ! $colorvalue =~ ^[a-fA-F0-9]{6}$ ]] && {
-                    printf '%s\n' " ${R}Hex colors must be 6 digits/numbers!" \
+                    printf '%s\n' " ${R}Hex colors must be 6 digits/numbers long!" \
                     " 0 -> 9, a -> f, eg: 88def2${Z}"
                     rm "$profile_name"
                     sleep 4
@@ -271,7 +274,7 @@ _createProfile() {
                 select profile_name in $(find "$themes_dir" -type f -printf '%f\n' | sort); do
 
                     _cancel
-                    _ifProfileTypeIs
+                    _ifProfileNameAlreadyExist
 
                     for key in "${!ThemeColors[@]}"; do
                         colorname="${ThemeColors[${key}]}"
@@ -297,7 +300,6 @@ _createProfile() {
         [xX])
             if [[ -e $HOME/.Xresources ]]; then
                 _ifProfileNameAlreadyExist
-                _ifProfileTypeIs
                 for colorname in "${XresourcesColors[@]}"; do
                     colorvalue=$(
                         xrdb -query | awk -F'#' -v X="$colorname" '$0 ~ X { print $2; exit }'
