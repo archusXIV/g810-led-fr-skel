@@ -75,6 +75,10 @@ lsusb | grep -i keyboard
 
 ![screenshot](https://github.com/archusXIV/g810-led-fr-skel/blob/main/screenshots/g810-led-menu.png)
 
+- If the dialog program is installed.
+
+![screenshot](https://github.com/archusXIV/g810-led-fr-skel/blob/main/screenshots/g810-led-dialog.png)
+
 Or use the command line directly to create, switch or delete profiles.
 
 ```

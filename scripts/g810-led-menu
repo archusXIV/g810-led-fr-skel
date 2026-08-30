@@ -52,10 +52,45 @@ profiles_num=("$profiles_dir"/*)
 themes_dir="$config_dir/themes"
 themes_num=("$themes_dir"/*)
 
-_mainMenu() {
-    # resizing the terminal
-    echo -ne '\e[8;30;103t'
-    clear
+_mainMenuAction() {
+    case "$1" in
+        1) _createProfile ;;
+        2) _deleteProfile ;;
+        3) _switchProfile ;;
+        4) _editFiles keys ;;
+        5) _editFiles groups ;;
+        6) _editFiles theme ;;
+        7) _editFiles profile ;;
+        [xX]) clear; exit ;;
+    esac
+}
+
+_mainMenuDialog() {
+    local option status
+    while true; do
+        option=$(
+            dialog \
+            --backtitle "Themes: ${#themes_num[@]}  Profiles: ${#profiles_num[@]}  In use: ${profile}" \
+            --title "G810-LED-MENU OPTIONS" \
+            --cancel-label "Exit" \
+            --menu "Select an item" 18 60 8 \
+            1 "Create a profile" \
+            2 "Delete a profile" \
+            3 "Switch profile" \
+            4 "Edit keys profile skel" \
+            5 "Edit groups profile skel" \
+            6 "Edit a theme" \
+            7 "Edit a profile" \
+            3>&1 1>&2 2>&3 3>&-
+        )
+        status=$?
+        clear
+        [[ $status -ne 0 ]] && exit 0
+        _mainMenuAction "$option"
+    done
+}
+
+_mainMenuText() {
     while true; do
         clear
         echo -e "\n Number of themes:   ${G}${#themes_num[@]}${Z}"
@@ -73,17 +108,21 @@ _mainMenu() {
 
         read -rsn 1 option
         case "$option" in
-            1) _createProfile ;;
-            2) _deleteProfile ;;
-            3) _switchProfile ;;
-            4) _editFiles keys ;;
-            5) _editFiles groups ;;
-            6) _editFiles theme ;;
-            7) _editFiles profile ;;
-            [xX]) clear; exit ;;
+            1|2|3|4|5|6|7|[xX]) _mainMenuAction "$option" ;;
             *) continue ;;
         esac
     done
+}
+
+_mainMenu() {
+    # resizing the terminal
+    echo -ne '\e[8;30;103t'
+    clear
+    if command -v dialog &>/dev/null; then
+        _mainMenuDialog
+    else
+        _mainMenuText
+    fi
 }
 
 blankLine() { printf '\n'; }
@@ -100,33 +139,71 @@ _cancel() {
     esac
 }
 
-_editFiles() {
+# Picks a file name from a list, using dialog if available or the select builtin otherwise.
+# Result is returned in the global pickResult variable, empty/cancelled selections go back to _mainMenu.
+_selectFile() {
+    local title="$1" text="$2"; shift 2
+    local -a items=("$@")
+    pickResult=""
 
-    __editMenu() {
-        local profile_name
+    if command -v dialog &>/dev/null; then
+        if (( ${#items[@]} == 0 )); then
+            clear
+            printf '%s\n' " ${R}Nothing to select...${Z}"
+            sleep 2
+            _mainMenu
+        fi
+
+        local -a menu_items=() item
+        for item in "${items[@]}"; do menu_items+=("$item" ""); done
+
+        pickResult=$(
+            dialog \
+            --backtitle "In use: ${profile}" \
+            --title "$title" \
+            --cancel-label "Cancel" \
+            --menu "$text" 24 30 8 \
+            "${menu_items[@]}" \
+            3>&1 1>&2 2>&3 3>&-
+        )
+
+        local status=$?
         clear
-        blankLine
-        select profile_name in $(find . -type f -printf '%f\n' | sort); do
+        [[ $status -ne 0 ]] && _mainMenu
+    else
+        PS3=""$'\n'" ${G}$text or [C]ancel: ${Z}"
+        select pickResult in "${items[@]}"; do
             _cancel
-            vim "$profile_name"
             break
         done
-    }
+    fi
+}
+
+_editMenu() {
+    local title="$1" text="$2" profile_name
+    local -a files=()
+    while IFS= read -r profile_name; do
+        files+=("$profile_name")
+    done < <(find . -type f -printf '%f\n' | sort)
+
+    clear
+    blankLine
+    _selectFile "$title" "$text" "${files[@]}"
+    vim "$pickResult"
+}
+
+_editFiles() {
 
     case $1 in
         groups) vim "$groups_skel" ;;
         keys) vim "$keys_skel" ;;
         profile)
             cd "$profiles_dir" || exit 1
-            blankLine
-            PS3=""$'\n'" ${G}Choose a RGB profile to edit or [C]ancel: ${Z}"
-            __editMenu
+            _editMenu "Edit a profile" "Choose a RGB profile to edit"
         ;;
         theme)
             cd "$themes_dir" || exit 1
-            blankLine
-            PS3=""$'\n'" ${G}Choose a theme to edit or [C]ancel: ${Z}"
-            __editMenu
+            _editMenu "Edit a theme" "Choose a theme to edit"
         ;;
     esac
 
@@ -137,30 +214,31 @@ _deleteProfile() {
     cd "$etc_profiles" || exit 1
     clear
     local profile_name
+    local -a files=()
+    while IFS= read -r profile_name; do
+        files+=("$profile_name")
+    done < <(find . -type f -not -name "default" -printf '%f\n' | sort)
 
-    echo -e "\n ${G}In use: $profile${Z}\n"
-    PS3=""$'\n'" ${G}Choose a RGB profile to delete or [C]ancel: ${Z}"
-    select profile_name in $(find . -type f -not -name "default" -printf '%f\n' | sort); do
-        _cancel
-        if [[ $profile_name == "$profile" ]]; then
-            # if we want to remove the profile in use...
-            # the default profile will be applied.
-            sudo "$myModelBinary" -pp < default
-            sudo rm "$profile_name"
-            sudo cp -f "$etc_profiles/default" "$etc_confdir/profile"
-            rm "$profiles_dir/$profile_name"
-            # we have to update the menu (the profile name).
-            profile="default"
-            printf '%s\n' " ${R}profile $profile_name deleted.${Z}"
-            sleep 2
-        else
-            sudo rm "$profile_name"
-            rm "$profiles_dir/$profile_name"
-            printf '%s\n' " ${R}profile $profile_name deleted.${Z}"
-            sleep 2
-        fi
-        break
-    done
+    _selectFile "Delete a profile" "Choose a RGB profile to delete" "${files[@]}"
+    profile_name="$pickResult"
+
+    if [[ $profile_name == "$profile" ]]; then
+        # if we want to remove the profile in use...
+        # the default profile will be applied.
+        sudo "$myModelBinary" -pp < default
+        sudo rm "$profile_name"
+        sudo cp -f "$etc_profiles/default" "$etc_confdir/profile"
+        rm "$profiles_dir/$profile_name"
+        # we have to update the menu (the profile name).
+        profile="default"
+        printf '%s\n' " ${R}profile $profile_name deleted.${Z}"
+        sleep 2
+    else
+        sudo rm "$profile_name"
+        rm "$profiles_dir/$profile_name"
+        printf '%s\n' " ${R}profile $profile_name deleted.${Z}"
+        sleep 2
+    fi
     # we have to update the menu (number of existing profiles).
     profiles_num=("$profiles_dir"/*)
 
@@ -286,29 +364,29 @@ _createProfile() {
         ;;
         [tT])
             if [[ -d $themes_dir ]]; then
-                echo -e " ${G}In use: $profile${Z}\n"
-                PS3=""$'\n'" ${G}Choose an existing theme or [C]ancel: ${Z}"
-                select profile_name in $(find "$themes_dir" -type f -printf '%f\n' | sort); do
+                local -a theme_files=()
+                while IFS= read -r profile_name; do
+                    theme_files+=("$profile_name")
+                done < <(find "$themes_dir" -type f -printf '%f\n' | sort)
 
-                    _cancel
-                    # _ifProfileNameAlreadyExist isn't needed here,
-                    # the profile name is determined by the user's choice in the menu.
-                    _ifProfileTypeIs
+                _selectFile "Create from theme" "Choose an existing theme" "${theme_files[@]}"
+                profile_name="$pickResult"
 
-                    for key in "${!ThemeColors[@]}"; do
-                        colorname="${ThemeColors[${key}]}"
-                        colorvalue=$(
-                            awk -F'#' -v K="$key" '
-                                $0 ~ K { print $3; exit }
-                            ' "$themes_dir/$profile_name"
-                        )
-                        printf '%s\n' "$colorvalue"
-                        sed -i "
-                            s/var ${colorname}/var ${colorname} ${colorvalue}/
-                        " "$profile_name"
-                    done
-                    break
+                # _ifProfileNameAlreadyExist isn't needed here,
+                # the profile name is determined by the user's choice in the menu.
+                _ifProfileTypeIs
 
+                for key in "${!ThemeColors[@]}"; do
+                    colorname="${ThemeColors[${key}]}"
+                    colorvalue=$(
+                        awk -F'#' -v K="$key" '
+                            $0 ~ K { print $3; exit }
+                        ' "$themes_dir/$profile_name"
+                    )
+                    printf '%s\n' "$colorvalue"
+                    sed -i "
+                        s/var ${colorname}/var ${colorname} ${colorvalue}/
+                    " "$profile_name"
                 done
             else
                 printf '%s\n' " ${R}$themes_dir does not exist...exiting${Z}"
@@ -358,18 +436,20 @@ _switchProfile() {
 
     cd "$profiles_dir" || exit 1
     clear
-    echo -e "\n ${G}In use: $profile${Z}\n"
 
     local profile_name
-    PS3=""$'\n'" ${G}Choose a RGB profile or [C]ancel: ${Z}"
-    select profile_name in $(find . -type f -printf '%f\n' | sort); do
-        _cancel
-        sudo "$myModelBinary" -pp < "$profile_name"
-        sudo cp -f "$etc_profiles/$profile_name" "$etc_confdir"/profile
-        printf '%s\n' " ${G}profile $profile_name selected.${Z}"
-        sleep 2
-        break
-    done
+    local -a files=()
+    while IFS= read -r profile_name; do
+        files+=("$profile_name")
+    done < <(find . -type f -not -name "$profile" -printf '%f\n' | sort)
+
+    _selectFile "Switch profile" "Choose a RGB profile" "${files[@]}"
+    profile_name="$pickResult"
+
+    sudo "$myModelBinary" -pp < "$profile_name"
+    sudo cp -f "$etc_profiles/$profile_name" "$etc_confdir"/profile
+    printf '%s\n' " ${G}profile $profile_name selected.${Z}"
+    sleep 2
 
     profile="$profile_name"
 
