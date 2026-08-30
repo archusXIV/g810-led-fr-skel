@@ -11,8 +11,14 @@
 # use lsusb | grep -i keyboard, to find out your model name & model id
 
 # shellcheck disable=SC2024
-G=$'\e[32m'
+# colors
 R=$'\e[31m'
+G=$'\e[32m'
+Y=$'\e[33m'
+B=$'\e[34m'
+M=$'\e[35m'
+C=$'\e[36m'
+W=$'\e[37m'
 Z=$'\e[0m'
 
 [[ ! $(awk '/Keyboard/{print $7}' < <(lsusb)) =~ ^Logitech,$ ]] && {
@@ -55,14 +61,14 @@ _mainMenu() {
         echo -e "\n Number of themes:   ${G}${#themes_num[@]}${Z}"
         echo -e " Number of profiles: ${G}${#profiles_num[@]}${Z}"
         echo -e " Profile in use:     ${G}${profile}${Z}\n\n"
-        printf '%s\n' "${G}                                      ::g810-led-menu options::" \
+        printf '%s\n' "${W}                                      ::${R}G${G}810${W}-${Y}LED${W}-${B}MENU ${M}OPTIONS${W}::${G}" \
                         "                       ┌────────────────────────────────────────────────────┐" \
                         "                       │  1) Create a profile  4) Edit keys profile skel    │" \
                         "                       │  2) Delete a profile  5) Edit groups profile skel  │" \
                         "                       │  3) Switch profile    6) Edit a theme              │" \
                         "                       │  ${R}X) Exit${G}              7) Edit a profile            │" \
                         "                       └────────────────────────────────────────────────────┘" \
-                        "                                           Select an item${Z}" \
+                        "                                           ${C}Select an item${Z}" \
         ""
 
         read -rsn 1 option
@@ -207,7 +213,7 @@ _saveAs() {
 
     read -rp " ${G}Apply $profile_name? [Y/n]: ${Z}" apply
     case "$apply" in
-        [yY])
+        [yY]|"")
             sudo "$myModelBinary" -pp < "$etc_profiles/$profile_name"
             sudo cp -f "$etc_profiles/$profile_name" "$etc_confdir"/profile
             profile="$profile_name"
@@ -245,6 +251,7 @@ _createProfile() {
 
     blankLine
     read -rp " ${G}Create a [G]roups or a [K]eys profile, [C]ancel: ${Z}" profile_type
+    case $profile_type in [cC]) _mainMenu ;; esac
     read -rp " ${G}Create [M]anually, from a [T]heme or from [X]resources: ${Z}" create_from
     blankLine
 
@@ -279,6 +286,7 @@ _createProfile() {
         ;;
         [tT])
             if [[ -d $themes_dir ]]; then
+                echo -e " ${G}In use: $profile${Z}\n"
                 PS3=""$'\n'" ${G}Choose an existing theme or [C]ancel: ${Z}"
                 select profile_name in $(find "$themes_dir" -type f -printf '%f\n' | sort); do
 
