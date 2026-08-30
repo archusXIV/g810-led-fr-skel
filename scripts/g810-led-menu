@@ -2,6 +2,7 @@
 
 # Author: Barret E <https://github.com/archusXIV>
 #
+# Dependencies: awk, g810-led, lsusb, dialog (optional)
 # This script let us create, delete, switch between RGB profiles
 # designed to be use with our Logitech compatible keyboard.
 # First install the g810-led package from sources or the AUR repository.
@@ -63,6 +64,7 @@ themes_dir="$config_dir/themes"
 themes_num=("$themes_dir"/*)
 
 _mainMenuAction() {
+
     case "$1" in
         1) _createProfile ;;
         2) _deleteProfile ;;
@@ -73,9 +75,11 @@ _mainMenuAction() {
         7) _editFiles profile ;;
         [xX]) clear; exit ;;
     esac
+
 }
 
 _mainMenuDialog() {
+
     local option status
     while true; do
         option=$(
@@ -98,9 +102,11 @@ _mainMenuDialog() {
         [[ $status -ne 0 ]] && exit 0
         _mainMenuAction "$option"
     done
+
 }
 
 _mainMenuText() {
+
     while true; do
         clear
         echo -e "\n Number of themes:   ${G}${#themes_num[@]}${Z}"
@@ -122,9 +128,11 @@ _mainMenuText() {
             *) continue ;;
         esac
     done
+
 }
 
 _mainMenu() {
+
     # resizing the terminal
     echo -ne '\e[8;30;103t'
     clear
@@ -133,11 +141,13 @@ _mainMenu() {
     else
         _mainMenuText
     fi
+
 }
 
-blankLine() { printf '\n'; }
+_blankLine() { printf '\n'; }
 
 _cancel() {
+
     case $REPLY in
         [cC])
             profile=$(sed -n '1s/# //p' "$etc_confdir"/profile)
@@ -147,11 +157,13 @@ _cancel() {
             _mainMenu
         ;;
     esac
+
 }
 
 # Picks a file name from a list, using dialog if available or the select builtin otherwise.
 # Result is returned in the global pickResult variable, empty/cancelled selections go back to _mainMenu.
 _selectFile() {
+
     local title="$1" text="$2"; shift 2
     local -a items=("$@")
     pickResult=""
@@ -187,9 +199,11 @@ _selectFile() {
             break
         done
     fi
+
 }
 
 _editMenu() {
+
     local title="$1" text="$2" profile_name
     local -a files=()
     while IFS= read -r profile_name; do
@@ -197,9 +211,10 @@ _editMenu() {
     done < <(find . -type f -printf '%f\n' | sort)
 
     clear
-    blankLine
+    _blankLine
     _selectFile "$title" "$text" "${files[@]}"
     "$editor" "$pickResult"
+
 }
 
 _editFiles() {
@@ -337,11 +352,11 @@ _createProfile() {
 
     local profile_name profile_type create_from colorvalue colorname
 
-    blankLine
+    _blankLine
     read -rp " ${G}Create a [G]roups or a [K]eys profile, [C]ancel: ${Z}" profile_type
     case $profile_type in [cC]) _mainMenu ;; esac
     read -rp " ${G}Create [M]anually, from a [T]heme or from [X]resources: ${Z}" create_from
-    blankLine
+    _blankLine
 
     case "$create_from" in
         [mM])
@@ -350,7 +365,7 @@ _createProfile() {
 
             for colorname in "${XresourcesColors[@]}"; do
 
-                blankLine
+                _blankLine
                 printf '%s\n' " ${G}color1=red color2=green color3=yellow color4=blue " \
                               " color5=magenta color6=cyan color7=white${Z}" \
                 ""
