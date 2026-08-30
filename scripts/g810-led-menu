@@ -36,10 +36,20 @@ for keyboard in "${Keyboards[@]}"; do
 done
 
 myModelBinary="${myModelName,}-led"
-command -v "$myModelBinary" || {
+command -v "$myModelBinary" &>/dev/null || {
     printf '%s\n' " ${R}No g810-led related binary found...exiting${Z}"
     exit 127
 }
+
+if command -v vim &>/dev/null; then
+    editor=vim
+else
+    read -rp " ${R}Enter your editor of choice: ${Z}" editor
+    [[ -z $editor ]] || ! command -v "$editor" &>/dev/null && exit 1
+fi
+
+# computed once so every menu (main and submenus) agrees on whether to use dialog
+command -v dialog &>/dev/null && HAS_DIALOG=1
 
 etc_confdir="/etc/g810-led"
 profile=$(sed -n '1s/# //p' "$etc_confdir"/profile)
@@ -73,7 +83,7 @@ _mainMenuDialog() {
             --backtitle "Themes: ${#themes_num[@]}  Profiles: ${#profiles_num[@]}  In use: ${profile}" \
             --title "G810-LED-MENU OPTIONS" \
             --cancel-label "Exit" \
-            --menu "Select an item" 18 60 8 \
+            --menu "Select an item:" 18 60 8 \
             1 "Create a profile" \
             2 "Delete a profile" \
             3 "Switch profile" \
@@ -118,7 +128,7 @@ _mainMenu() {
     # resizing the terminal
     echo -ne '\e[8;30;103t'
     clear
-    if command -v dialog &>/dev/null; then
+    if [[ -n $HAS_DIALOG ]]; then
         _mainMenuDialog
     else
         _mainMenuText
@@ -146,7 +156,7 @@ _selectFile() {
     local -a items=("$@")
     pickResult=""
 
-    if command -v dialog &>/dev/null; then
+    if [[ -n $HAS_DIALOG ]]; then
         if (( ${#items[@]} == 0 )); then
             clear
             printf '%s\n' " ${R}Nothing to select...${Z}"
@@ -189,14 +199,14 @@ _editMenu() {
     clear
     blankLine
     _selectFile "$title" "$text" "${files[@]}"
-    vim "$pickResult"
+    "$editor" "$pickResult"
 }
 
 _editFiles() {
 
     case $1 in
-        groups) vim "$groups_skel" ;;
-        keys) vim "$keys_skel" ;;
+        groups) "$editor" "$groups_skel" ;;
+        keys) "$editor" "$keys_skel" ;;
         profile)
             cd "$profiles_dir" || exit 1
             _editMenu "Edit a profile" "Choose a RGB profile to edit"
