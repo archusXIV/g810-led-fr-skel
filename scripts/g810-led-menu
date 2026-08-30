@@ -4,6 +4,8 @@
 #
 # This script let us create, delete, switch between RGB profiles
 # designed to be use with our Logitech compatible keyboard.
+# First install the g810-led package from sources or the AUR repository.
+#
 # Supported keyboards: G213 G410 G413 G512 G513 G610 G810 G815 G910 Gpro
 # Themes, profiles and "skeletons" can be edited through the menu too.
 # use lsusb | grep -i keyboard, to find out your model name & model id
@@ -14,30 +16,35 @@ R=$'\e[31m'
 Z=$'\e[0m'
 
 [[ ! $(awk '/Keyboard/{print $7}' < <(lsusb)) =~ ^Logitech,$ ]] && {
-    printf '%s\n' " ${R}Keyboard $myModelName is not plugged in, exiting...${Z}"
+    printf '%s\n' " ${R}No Logitech keyboard detected, exiting...${Z}"
     exit 1
 }
 
-myModelName=$(awk '/Keyboard/{print $9}' < <(lsusb))
-myModelBinary="${myModelName,}-led"
+declare -a Keyboards=( G213 G410 G413 G512 G513 G610 G810 G815 G910 Gpro )
+for keyboard in "${Keyboards[@]}"; do
+    if [[ $(awk '/Keyboard/{print $9}' < <(lsusb)) != "$keyboard" ]]; then
+        continue
+    else
+        myModelName="$keyboard"
+    fi
+done
 
-! grep -q "$myModelName" < <(lsusb) && {
-    [[ -z $(command -v "$myModelBinary") ]] && {
-        printf '%s\n' " ${R}No g810-led related binary found...exiting${Z}"
-        exit 127
-    }
+myModelBinary="${myModelName,}-led"
+command -v "$myModelBinary" || {
+    printf '%s\n' " ${R}No g810-led related binary found...exiting${Z}"
+    exit 127
 }
 
 etc_confdir="/etc/g810-led"
-etc_profiles="$etc_confdir/profiles"
 profile=$(sed -n '1s/# //p' "$etc_confdir"/profile)
+etc_profiles="$etc_confdir/profiles"
 config_dir="$HOME/.config/g810-led"
 groups_skel="$config_dir/groups_skel"
-profiles_dir="$config_dir/profiles"
 keys_skel="$config_dir/keys_skel"
+profiles_dir="$config_dir/profiles"
+profiles_num=("$profiles_dir"/*)
 themes_dir="$config_dir/themes"
 themes_num=("$themes_dir"/*)
-profiles_num=("$profiles_dir"/*)
 
 _mainMenu() {
     # resizing the terminal
@@ -153,6 +160,18 @@ _deleteProfile() {
 
 }
 
+_ifProfileNameAlreadyExist() {
+
+    read -rp " ${G}Enter a profile name: ${Z}" profile_name
+    [[ -f $profile_name ]] && {
+        printf '%s\n' " ${R}profile $profile_name already exists, try again...${Z}"
+        sleep 2
+        clear
+        _mainMenu
+    }
+
+}
+
 _ifProfileTypeIs() {
 
     case "${profile_type}" in
@@ -177,18 +196,6 @@ _ifProfileTypeIs() {
     esac
 
     clear
-
-}
-
-_ifProfileNameAlreadyExist() {
-
-    read -rp " ${G}Enter a profile name: ${Z}" profile_name
-    [[ -f $profile_name ]] && {
-        printf '%s\n' " ${R}profile $profile_name already exists, try again...${Z}"
-        sleep 2
-        clear
-        _mainMenu
-    }
 
 }
 
@@ -238,13 +245,13 @@ _createProfile() {
 
     blankLine
     read -rp " ${G}Create a [G]roups or a [K]eys profile, [C]ancel: ${Z}" profile_type
-    _ifProfileTypeIs
     read -rp " ${G}Create [M]anually, from a [T]heme or from [X]resources: ${Z}" create_from
     blankLine
 
     case "$create_from" in
         [mM])
             _ifProfileNameAlreadyExist
+            _ifProfileTypeIs
 
             for colorname in "${XresourcesColors[@]}"; do
 
@@ -259,11 +266,13 @@ _createProfile() {
                     printf '%s\n' " ${R}Hex colors must be 6 digits/numbers long!" \
                     " 0 -> 9, a -> f, eg: 88def2${Z}"
                     rm "$profile_name"
-                    sleep 4
+                    sleep 5
                     _mainMenu
                 }
 
-                sed -i "s/var ${colorname}/var ${colorname} ${colorvalue}/" "$profile_name"
+                sed -i "
+                    s/var ${colorname}/var ${colorname} ${colorvalue}/
+                " "$profile_name"
                 clear
 
             done
@@ -274,7 +283,9 @@ _createProfile() {
                 select profile_name in $(find "$themes_dir" -type f -printf '%f\n' | sort); do
 
                     _cancel
-                    _ifProfileNameAlreadyExist
+                    # _ifProfileNameAlreadyExist isn't needed here,
+                    # the profile name is determined by the user's choice in the menu.
+                    _ifProfileTypeIs
 
                     for key in "${!ThemeColors[@]}"; do
                         colorname="${ThemeColors[${key}]}"
@@ -284,8 +295,9 @@ _createProfile() {
                             ' "$themes_dir/$profile_name"
                         )
                         printf '%s\n' "$colorvalue"
-                        sed -i "s/var ${colorname}/var ${colorname} ${colorvalue}/" \
-                        "$profile_name"
+                        sed -i "
+                            s/var ${colorname}/var ${colorname} ${colorvalue}/
+                        " "$profile_name"
                     done
                     break
 
@@ -299,14 +311,23 @@ _createProfile() {
         ;;
         [xX])
             if [[ -e $HOME/.Xresources ]]; then
+
                 _ifProfileNameAlreadyExist
+                _ifProfileTypeIs
+
                 for colorname in "${XresourcesColors[@]}"; do
                     colorvalue=$(
-                        xrdb -query | awk -F'#' -v X="$colorname" '$0 ~ X { print $2; exit }'
+                        xrdb -query \
+                        | awk -F'#' -v X="$colorname" '
+                            $0 ~ X { print $2; exit }
+                        '
                     )
                     printf '%s\n' "$colorvalue"
-                    sed -i "s/var ${colorname}/var ${colorname} ${colorvalue}/" "$profile_name"
+                    sed -i "
+                        s/var ${colorname}/var ${colorname} ${colorvalue}/
+                    " "$profile_name"
                 done
+
             else
                 printf '%s\n' " ${R}$HOME/.Xresources does not exist...exiting!${Z}"
                 rm {groups,keys}_skel 2>/dev/null

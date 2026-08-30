@@ -1,21 +1,32 @@
 #!/usr/bin/env bash
 
 # Author: Barret E <https://github.com/archusXIV>
-# Create g810-led colorschemes (profiles) from a skeleton file: manually,
-# from our current ~/.Xresources colors or from an existing Xresources theme.
-# supported keyboard: G213 G410 G413 G512 G513 G610 G810 G815 G910 Gpro,
+#
+# This script let us create RGB profiles designed to be use with our
+# Logitech compatible keyboard.
+# First install the g810-led package from sources or the AUR repository.
+# Supported keyboards: G213 G410 G413 G512 G513 G610 G810 G815 G910 Gpro
+# use lsusb | grep -i keyboard, to find out your model name & model id
 
 # shellcheck disable=SC2024
-myModelName=$(awk '/Keyboard/{print $9}' < <(lsusb))
-myModelBinary="${myModelName,}-led"
-
-! grep -q "$myModelName" < <(lsusb) && {
-    [[ -z $(command -v "$myModelBinary") ]] && {
-        echo " No g810-led related binary found...exiting"
-        exit 127
-    }
-    echo "Keyboard $myModelName is not plugged in, exiting..."
+[[ ! $(awk '/Keyboard/{print $7}' < <(lsusb)) =~ ^Logitech,$ ]] && {
+    printf '%s\n' " ${R}No Logitech keyboard detected, exiting...${Z}"
     exit 1
+}
+
+declare -a Keyboards=( G213 G410 G413 G512 G513 G610 G810 G815 G910 Gpro )
+for keyboard in "${Keyboards[@]}"; do
+    if [[ $(awk '/Keyboard/{print $9}' < <(lsusb)) != "$keyboard" ]]; then
+        continue
+    else
+        myModelName="$keyboard"
+    fi
+done
+
+myModelBinary="${myModelName,}-led"
+command -v "$myModelBinary" || {
+    printf '%s\n' " ${R}No g810-led related binary found...exiting${Z}"
+    exit 127
 }
 
 config_dir="$HOME/.config/g810-led"

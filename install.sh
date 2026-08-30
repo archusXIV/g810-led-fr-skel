@@ -21,6 +21,8 @@ while true; do
         *)
             echo " Invalid choice. Please enter 1 or 2."
             sleep 2
+            clear
+            continue
         ;;
     esac
 done
