@@ -29,7 +29,7 @@ Z=$'\e[0m'
 
 declare -a Keyboards=( G213 G410 G413 G512 G513 G610 G810 G815 G910 Gpro )
 for keyboard in "${Keyboards[@]}"; do
-    if [[ $(awk '/Keyboard/{print $9}' < <(lsusb)) != "$keyboard" ]]; then
+    if [[ ! $(awk -v kb="$keyboard" '$0 ~ kb {print $9}' < <(lsusb)) ]]; then
         continue
     else
         myModelName="$keyboard"
@@ -38,7 +38,7 @@ done
 
 myModelBinary="${myModelName,}-led"
 command -v "$myModelBinary" &>/dev/null || {
-    printf '%s\n' " ${R}No g810-led related binary found...exiting${Z}"
+    printf '%s\n' " ${R}No g810-led related binary found, exiting...${Z}"
     exit 127
 }
 
@@ -81,6 +81,7 @@ _mainMenuAction() {
 _mainMenuDialog() {
 
     local option status
+
     while true; do
         option=$(
             dialog \
@@ -206,6 +207,7 @@ _editMenu() {
 
     local title="$1" text="$2" profile_name
     local -a files=()
+
     while IFS= read -r profile_name; do
         files+=("$profile_name")
     done < <(find . -type f -printf '%f\n' | sort)
@@ -240,6 +242,7 @@ _deleteProfile() {
     clear
     local profile_name
     local -a files=()
+
     while IFS= read -r profile_name; do
         files+=("$profile_name")
     done < <(find . -type f -not -name "default" -printf '%f\n' | sort)
@@ -292,11 +295,6 @@ _ifProfileTypeIs() {
             cp "$keys_skel" "$profiles_dir/$profile_name"
             sed -i "1s/^/# $profile_name\n/" "$profile_name"
         ;;
-        [cC])
-            printf '%s\n' " ${R}Selection cancelled...${Z}"
-            sleep 2
-            _mainMenu
-        ;;
         *)
             printf '%s\n' " ${R}Wrong option $profile_type.${Z}"
             sleep 2
@@ -315,6 +313,7 @@ _saveAs() {
     sudo chmod +r "$etc_profiles/$profile_name"
 
     read -rp " ${G}Apply $profile_name? [Y/n]: ${Z}" apply
+    # Yes or Enter (empty string) will apply the profile.
     case "$apply" in
         [yY]|"")
             sudo "$myModelBinary" -pp < "$etc_profiles/$profile_name"
@@ -358,6 +357,12 @@ _createProfile() {
     read -rp " ${G}Create [M]anually, from a [T]heme or from [X]resources: ${Z}" create_from
     _blankLine
 
+    __sedEditProfile() {
+        sed -i "
+            s/var ${colorname}/var ${colorname} ${colorvalue}/
+        " "$profile_name"
+    }
+
     case "$create_from" in
         [mM])
             _ifProfileNameAlreadyExist
@@ -380,16 +385,16 @@ _createProfile() {
                     _mainMenu
                 }
 
-                sed -i "
-                    s/var ${colorname}/var ${colorname} ${colorvalue}/
-                " "$profile_name"
+                __sedEditProfile
                 clear
 
             done
         ;;
         [tT])
             if [[ -d $themes_dir ]]; then
+
                 local -a theme_files=()
+
                 while IFS= read -r profile_name; do
                     theme_files+=("$profile_name")
                 done < <(find "$themes_dir" -type f -printf '%f\n' | sort)
@@ -409,10 +414,9 @@ _createProfile() {
                         ' "$themes_dir/$profile_name"
                     )
                     printf '%s\n' "$colorvalue"
-                    sed -i "
-                        s/var ${colorname}/var ${colorname} ${colorvalue}/
-                    " "$profile_name"
+                    __sedEditProfile
                 done
+
             else
                 printf '%s\n' " ${R}$themes_dir does not exist...exiting${Z}"
                 rm {groups,keys}_skel 2>/dev/null
@@ -434,9 +438,7 @@ _createProfile() {
                         '
                     )
                     printf '%s\n' "$colorvalue"
-                    sed -i "
-                        s/var ${colorname}/var ${colorname} ${colorvalue}/
-                    " "$profile_name"
+                    __sedEditProfile
                 done
 
             else
@@ -464,6 +466,7 @@ _switchProfile() {
 
     local profile_name
     local -a files=()
+
     while IFS= read -r profile_name; do
         files+=("$profile_name")
     done < <(find . -type f -not -name "$profile" -printf '%f\n' | sort)
